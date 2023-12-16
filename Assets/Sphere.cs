@@ -1,9 +1,10 @@
+using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
-public class Sphere : MonoBehaviour
-{
+public class Sphere : MonoBehaviour {
+    public Material mat;
     public MeshFilter meshFilter;
 
     // 황금비를 이루는 직사각형의 너비와 높이 계산
@@ -13,7 +14,7 @@ public class Sphere : MonoBehaviour
     static readonly float Hh = 2 / Mathf.Sqrt(10 + 2 * Mathf.Sqrt(5));
     static readonly float Wh = Hh * (1 + Mathf.Sqrt(5)) / 2;
     
-    readonly int[][] edges = {
+    readonly int[][] edgesPerFaces = {
         new[]{0, 1, 7},
         new[]{0, 4, 1},
         new[]{0, 7, 9},
@@ -56,7 +57,7 @@ public class Sphere : MonoBehaviour
     void Start() {
         var mesh = new Mesh { vertices = vertices };
 
-        var triangles = edges.SelectMany(e => e).ToArray();
+        var triangles = edgesPerFaces.SelectMany(e => e).ToArray();
         
         mesh.triangles = triangles;
         mesh.normals = vertices;
@@ -67,6 +68,15 @@ public class Sphere : MonoBehaviour
         }
 
         meshFilter.mesh = mesh;
+
+        foreach (var edgesPerFace in edgesPerFaces) {
+            var go = new GameObject();
+            var mf = go.AddComponent<MeshFilter>();
+            mf.mesh = CreateSubdividedTri(new [] { vertices[edgesPerFace[0]], vertices[edgesPerFace[1]], vertices[edgesPerFace[2]] }, 10);
+            go.AddComponent<MeshRenderer>().material = mat;
+        }
+
+        
     }
     
     #if UNITY_EDITOR
@@ -79,9 +89,70 @@ public class Sphere : MonoBehaviour
             Handles.Label(v, $"vt{index}");
         }
 
-        foreach (var e in edges) {
-            Gizmos.DrawLineStrip(e.Select(ee => vertices[ee]).ToArray(), true);
+        for (var index = 0; index < edgesPerFaces.Length; index++) {
+            var e = edgesPerFaces[index];
+            var edgeVertices = e.Select(ee => vertices[ee]).ToArray();
+            Gizmos.DrawLineStrip(edgeVertices, true);
+            var center = edgeVertices.Aggregate(Vector3.zero, (s, v) => s + v) / edgeVertices.Length;
+            Handles.Label(center, $"f{index}");
         }
     }
 #endif
+    
+    static Mesh CreateSubdividedTri(IReadOnlyList<Vector3> vList, int n) {
+        var totalVCount = (n + 1) * (n + 2) / 2;
+        var totalFCount = n * n;
+
+        var v0 = vList[0];
+        var v1 = vList[1];
+        var v2 = vList[2];
+
+        var uA = (v1 - v0) / n;
+        var uB = (v2 - v0) / n;
+
+        var vertices = new Vector3[totalVCount];
+        var edgesPerFaces = new int[totalFCount][];
+        
+        var vIndex = 0;
+        var fIndex = 0;
+        for (var b = 0; b <= n; b++) {
+            for (var a = 0; a <= n - b; a++) {
+                vertices[vIndex] = v0 + (uA * a + uB * b);
+                if (a <= n - b - 1) {
+                    edgesPerFaces[fIndex] = new[] {
+                        vIndex,
+                        vIndex + 1,
+                        vIndex + n + 1 - b,
+                    };
+                    fIndex++;
+
+                    if (a <= n - b - 2) {
+                        edgesPerFaces[fIndex] = new[] {
+                            vIndex + 1,
+                            vIndex + 1 + n + 1 - b,
+                            vIndex + 1 + n + 1 - b - 1,
+                        };
+                        fIndex++;
+                    }
+                }
+
+                vIndex++;
+            }
+        }
+
+        for (var index = 0; index < vertices.Length; index++) {
+            vertices[index] = vertices[index].normalized;
+        }
+
+        var mesh = new Mesh { vertices = vertices };
+
+        var triangles = edgesPerFaces.SelectMany(e => e).ToArray();
+        
+        mesh.triangles = triangles;
+        mesh.normals = vertices;
+        mesh.RecalculateNormals();
+
+        return mesh;
+    }
 }
+
