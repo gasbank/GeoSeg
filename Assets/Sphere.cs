@@ -1,4 +1,3 @@
-using System;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
@@ -7,8 +6,12 @@ public class Sphere : MonoBehaviour
 {
     public MeshFilter meshFilter;
 
-    static readonly float hh = 2 / Mathf.Sqrt(10 + 2 * Mathf.Sqrt(5));
-    static readonly float wh = hh * (1 + Mathf.Sqrt(5)) / 2;
+    // 황금비를 이루는 직사각형의 너비와 높이 계산
+    // (직사각형의 중심에서 각 꼭지점까지의 거리는 1)
+    // Hh: 직사각형 높이의 절반
+    // Wh: 직사각형 너비의 절반
+    static readonly float Hh = 2 / Mathf.Sqrt(10 + 2 * Mathf.Sqrt(5));
+    static readonly float Wh = Hh * (1 + Mathf.Sqrt(5)) / 2;
     
     readonly int[][] edges = {
         new[]{0, 1, 7},
@@ -34,37 +37,26 @@ public class Sphere : MonoBehaviour
     };
 
     readonly Vector3[] vertices = {
-        new(0, -hh,-wh),
-        new(0, +hh,-wh),
-        new(0, +hh,+wh),
-        new(0, -hh,+wh),
+        new(0, -Hh,-Wh),
+        new(0, +Hh,-Wh),
+        new(0, +Hh,+Wh),
+        new(0, -Hh,+Wh),
             
-        new(-wh, 0, -hh),
-        new(-wh, 0, +hh),
-        new(+wh, 0, +hh),
-        new(+wh, 0, -hh),
+        new(-Wh, 0, -Hh),
+        new(-Wh, 0, +Hh),
+        new(+Wh, 0, +Hh),
+        new(+Wh, 0, -Hh),
             
-        new(-hh,-wh,0),
-        new(+hh,-wh,0),
-        new(+hh,+wh,0),
-        new(-hh,+wh,0),
+        new(-Hh,-Wh,0),
+        new(+Hh,-Wh,0),
+        new(+Hh,+Wh,0),
+        new(-Hh,+Wh,0),
     };
     
     void Start() {
         var mesh = new Mesh { vertices = vertices };
 
-        var triangles = new [] {
-            0,1,2,
-            2,3,0,
-            
-            4+0,4+1,4+2,
-            4+2,4+3,4+0,
-            
-            8+2,8+1,8+0,
-            8+0,8+3,8+2,
-        };
-
-        triangles = edges.SelectMany(e => e).ToArray();
+        var triangles = edges.SelectMany(e => e).ToArray();
         
         mesh.triangles = triangles;
         mesh.normals = vertices;
