@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
@@ -7,6 +8,8 @@ public class Sphere : MonoBehaviour {
     public Material mat;
     public Material[] matRgb;
     public MeshFilter meshFilter;
+    public Transform userPos;
+    public Transform intersectPos;
 
     // 황금비를 이루는 직사각형의 너비와 높이 계산
     // (직사각형의 중심에서 각 꼭지점까지의 거리는 1)
@@ -16,101 +19,121 @@ public class Sphere : MonoBehaviour {
     static readonly float Wh = Hh * (1 + Mathf.Sqrt(5)) / 2;
 
     readonly int[][] edgesPerFaces = {
+        // Face 0
         new[] {
             0,
             1,
             7,
         },
+        // Face 1
         new[] {
             0,
             4,
             1,
         },
+        // Face 2
         new[] {
             0,
             7,
             9,
         },
+        // Face 3
         new[] {
             0,
             8,
             4,
         },
+        // Face 4
         new[] {
             0,
             9,
             8,
         },
+        // Face 5
         new[] {
             1,
             11,
             10,
         },
+        // Face 6
         new[] {
             1,
             10,
             7,
         },
+        // Face 7
         new[] {
             1,
             4,
             11,
         },
+        // Face 8
         new[] {
             2,
             3,
             6,
         },
+        // Face 9
         new[] {
             2,
             5,
             3,
         },
+        // Face 10
         new[] {
             2,
             6,
             10,
         },
+        // Face 11
         new[] {
             2,
             10,
             11,
         },
+        // Face 12
         new[] {
             2,
             11,
             5,
         },
+        // Face 13
         new[] {
             3,
             5,
             8,
         },
+        // Face 14
         new[] {
             3,
             8,
             9,
         },
+        // Face 15
         new[] {
             3,
             9,
             6,
         },
+        // Face 16
         new[] {
             4,
             5,
             11,
         },
+        // Face 17
         new[] {
             4,
             8,
             5,
         },
+        // Face 18
         new[] {
             6,
             7,
             10,
         },
+        // Face 19
         new[] {
             6,
             9,
@@ -133,6 +156,8 @@ public class Sphere : MonoBehaviour {
         new(-Hh, +Wh, 0),
     };
 
+    readonly List<Vector3[]> segmentGroupTriList = new();
+
     void Start() {
         var mesh = new Mesh { vertices = vertices };
 
@@ -154,11 +179,13 @@ public class Sphere : MonoBehaviour {
             var edgesPerFace = edgesPerFaces[index];
             var go = new GameObject();
             var mf = go.AddComponent<MeshFilter>();
-            mf.mesh = CreateSubdividedTri(new[] {
+            var segmentGroupTri = new[] {
                 vertices[edgesPerFace[0]],
                 vertices[edgesPerFace[1]],
                 vertices[edgesPerFace[2]],
-            }, subdivisionCount);
+            };
+            segmentGroupTriList.Add(segmentGroupTri);
+            mf.mesh = CreateSubdividedTri(segmentGroupTri, subdivisionCount);
             var mr = go.AddComponent<MeshRenderer>();
             mr.materials = new[] {
                 mat,
@@ -171,7 +198,7 @@ public class Sphere : MonoBehaviour {
     }
 
 #if UNITY_EDITOR
-    void OnDrawGizmosSelected() {
+    void OnDrawGizmos() {
         Gizmos.color = Color.magenta;
 
         for (var index = 0; index < vertices.Length; index++) {
@@ -187,6 +214,8 @@ public class Sphere : MonoBehaviour {
             var center = edgeVertices.Aggregate(Vector3.zero, (s, v) => s + v) / edgeVertices.Length;
             Handles.Label(center, $"f{index}");
         }
+
+        Gizmos.DrawLine(Vector3.zero, userPos.position);
     }
 #endif
 
@@ -249,5 +278,29 @@ public class Sphere : MonoBehaviour {
         mesh.SetTriangles(triangles.Skip(3 * (totalFCount - 1)).Take(3).ToList(), 3);
         
         return mesh;
+    }
+
+    void Update() {
+        if (userPos != null) {
+            var intersectedIndex = -1;
+            for (var index = 0; index < segmentGroupTriList.Count; index++) {
+                var triList = segmentGroupTriList[index];
+                var position = userPos.position;
+                var intersectTuv = Intersection.GetTimeAndUvCoord(position, -position, triList[2],
+                    triList[1], triList[0]);
+                if (intersectTuv != null) {
+                    intersectedIndex = index;
+                    intersectPos.position =
+                        Intersection.GetTrilinearCoordinateOfTheHit(intersectTuv.Value.x, position, -position);
+                    break;
+                }
+            }
+
+            if (intersectedIndex >= 0) {
+                Debug.Log($"Intersected with segment group {intersectedIndex}");
+            } else {
+                Debug.Log($"Not intersected!?");
+            }
+        }
     }
 }
