@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.Mathematics;
 using UnityEditor;
 using UnityEngine;
 
@@ -157,8 +158,8 @@ public class Sphere : MonoBehaviour {
         new(+Hh, +Wh, 0),
         new(-Hh, +Wh, 0),
     };
-
-    readonly List<Vector3[]> segmentGroupTriList = new();
+    
+    const int SubdivisionCount = 5;
 
     void Start() {
         var mesh = new Mesh { vertices = vertices };
@@ -175,8 +176,6 @@ public class Sphere : MonoBehaviour {
 
         meshFilter.mesh = mesh;
 
-        const int subdivisionCount = 5;
-
         for (var index = 0; index < edgesPerFaces.Length; index++) {
             var edgesPerFace = edgesPerFaces[index];
             var go = new GameObject();
@@ -186,8 +185,8 @@ public class Sphere : MonoBehaviour {
                 vertices[edgesPerFace[1]],
                 vertices[edgesPerFace[2]],
             };
-            segmentGroupTriList.Add(segmentGroupTri);
-            mf.mesh = CreateSubdividedTri(segmentGroupTri, subdivisionCount);
+            
+            mf.mesh = CreateSubdividedTri(segmentGroupTri, SubdivisionCount);
             var mr = go.AddComponent<MeshRenderer>();
             mr.materials = new[] {
                 mat,
@@ -212,6 +211,10 @@ public class Sphere : MonoBehaviour {
         GUIStyle handleStyle = new() { normal = { textColor = Color.grey }, fontSize = 20 };
         GUIStyle selectedHandleStyle = new() { normal = { textColor = Color.red }, fontSize = 20 };
 
+        List<Vector3[]> segmentGroupTriList = new();
+
+
+        
         for (var index = 0; index < edgesPerFaces.Length; index++) {
             var e = edgesPerFaces[index];
             var edgeVertices = e.Select(ee => vertices[ee]).ToArray();
@@ -222,9 +225,57 @@ public class Sphere : MonoBehaviour {
             if (faceAngle is >= 0 and <= 90) {
                 Handles.Label(center, $"f{index}", index == intersectedIndex ? selectedHandleStyle : handleStyle);
             }
+            
+            segmentGroupTriList.Add(edgeVertices);
         }
 
+        Gizmos.color = Color.white;
         Gizmos.DrawLine(Vector3.zero, userPos.position);
+        
+        if (userPos != null) {
+            intersectedIndex = -1;
+            var intersectPosCoords = Vector3.zero;
+            for (var index = 0; index < segmentGroupTriList.Count; index++) {
+                var triList = segmentGroupTriList[index];
+                var position = userPos.position;
+                var intersectTuv = Intersection.GetTimeAndUvCoord(position, -position, triList[0],
+                    triList[1], triList[2]);
+                if (intersectTuv != null) {
+                    intersectedIndex = index;
+                    intersectPosCoords = Intersection.GetTrilinearCoordinateOfTheHit(intersectTuv.Value.x, position, -position);
+                    intersectPos.position = intersectPosCoords.normalized;
+                    break;
+                }
+            }
+
+            if (intersectedIndex >= 0) {
+                var triList = segmentGroupTriList[intersectedIndex];
+                var abCoords = CalculateAbCoords(triList[0], triList[1], triList[2], intersectPosCoords);
+                Debug.Log($"Intersected with segment group {intersectedIndex}, {abCoords}");
+            } else {
+                Debug.Log($"Not intersected!?");
+            }
+        }
+    }
+
+    static Tuple<Vector2Int, bool> CalculateAbCoords(Vector3 ip0, Vector3 ip1, Vector3 ip2, Vector3 intersect) {
+        var p = intersect - ip0;
+        var p01 = ip1 - ip0;
+        var p02 = ip2 - ip0;
+
+        var a = Vector3.Dot(p, p01) / p01.sqrMagnitude;
+        var b = Vector3.Dot(p, p02) / p02.sqrMagnitude;
+
+        var tanDelta = Vector3.Cross(p01, p02).magnitude / Vector3.Dot(p01, p02);
+
+        var ap = a - (p - a * p01).magnitude / (tanDelta * p01.magnitude);
+        var bp = b - (p - b * p02).magnitude / (tanDelta * p02.magnitude);
+
+        var apf = math.modf(ap * SubdivisionCount, out var api);
+        var bpf = math.modf(bp * SubdivisionCount, out var bpi);
+        
+        //ap * SubdivisionCount
+        return Tuple.Create(new Vector2Int((int)api, (int)bpi), apf + bpf > 1);
     }
 #endif
 
@@ -290,26 +341,6 @@ public class Sphere : MonoBehaviour {
     }
     
     void Update() {
-        if (userPos != null) {
-            intersectedIndex = -1;
-            for (var index = 0; index < segmentGroupTriList.Count; index++) {
-                var triList = segmentGroupTriList[index];
-                var position = userPos.position;
-                var intersectTuv = Intersection.GetTimeAndUvCoord(position, -position, triList[2],
-                    triList[1], triList[0]);
-                if (intersectTuv != null) {
-                    intersectedIndex = index;
-                    intersectPos.position =
-                        Intersection.GetTrilinearCoordinateOfTheHit(intersectTuv.Value.x, position, -position).normalized;
-                    break;
-                }
-            }
-
-            if (intersectedIndex >= 0) {
-                Debug.Log($"Intersected with segment group {intersectedIndex}");
-            } else {
-                Debug.Log($"Not intersected!?");
-            }
-        }
+        
     }
 }
