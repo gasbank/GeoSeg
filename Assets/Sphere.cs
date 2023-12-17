@@ -10,6 +10,8 @@ public class Sphere : MonoBehaviour {
     public MeshFilter meshFilter;
     public Transform userPos;
     public Transform intersectPos;
+    public int intersectedIndex = -1;
+
 
     // 황금비를 이루는 직사각형의 너비와 높이 계산
     // (직사각형의 중심에서 각 꼭지점까지의 거리는 1)
@@ -173,7 +175,7 @@ public class Sphere : MonoBehaviour {
 
         meshFilter.mesh = mesh;
 
-        const int subdivisionCount = 10;
+        const int subdivisionCount = 5;
 
         for (var index = 0; index < edgesPerFaces.Length; index++) {
             var edgesPerFace = edgesPerFaces[index];
@@ -206,13 +208,20 @@ public class Sphere : MonoBehaviour {
             Gizmos.DrawSphere(v, 0.025f);
             Handles.Label(v, $"vt{index}");
         }
+        
+        GUIStyle handleStyle = new() { normal = { textColor = Color.grey }, fontSize = 20 };
+        GUIStyle selectedHandleStyle = new() { normal = { textColor = Color.red }, fontSize = 20 };
 
         for (var index = 0; index < edgesPerFaces.Length; index++) {
             var e = edgesPerFaces[index];
             var edgeVertices = e.Select(ee => vertices[ee]).ToArray();
             Gizmos.DrawLineStrip(edgeVertices, true);
+            
             var center = edgeVertices.Aggregate(Vector3.zero, (s, v) => s + v) / edgeVertices.Length;
-            Handles.Label(center, $"f{index}");
+            var faceAngle = Vector3.Angle(SceneView.currentDrawingSceneView.camera.transform.position, center);
+            if (faceAngle is >= 0 and <= 90) {
+                Handles.Label(center, $"f{index}", index == intersectedIndex ? selectedHandleStyle : handleStyle);
+            }
         }
 
         Gizmos.DrawLine(Vector3.zero, userPos.position);
@@ -279,10 +288,10 @@ public class Sphere : MonoBehaviour {
         
         return mesh;
     }
-
+    
     void Update() {
         if (userPos != null) {
-            var intersectedIndex = -1;
+            intersectedIndex = -1;
             for (var index = 0; index < segmentGroupTriList.Count; index++) {
                 var triList = segmentGroupTriList[index];
                 var position = userPos.position;
@@ -291,7 +300,7 @@ public class Sphere : MonoBehaviour {
                 if (intersectTuv != null) {
                     intersectedIndex = index;
                     intersectPos.position =
-                        Intersection.GetTrilinearCoordinateOfTheHit(intersectTuv.Value.x, position, -position);
+                        Intersection.GetTrilinearCoordinateOfTheHit(intersectTuv.Value.x, position, -position).normalized;
                     break;
                 }
             }
