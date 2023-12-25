@@ -11,8 +11,9 @@ public class Sphere : MonoBehaviour {
     public MeshFilter meshFilter;
     public Transform userPos;
     public Transform intersectPos;
-    public int intersectedIndex = -1;
+    public int intersectedSegmentGroupIndex = -1;
 
+    public static string overlayText;
 
     // 황금비를 이루는 직사각형의 너비와 높이 계산
     // (직사각형의 중심에서 각 꼭지점까지의 거리는 1)
@@ -170,9 +171,9 @@ public class Sphere : MonoBehaviour {
         mesh.normals = vertices;
         mesh.RecalculateNormals();
 
-        foreach (var v in vertices) {
-            Debug.Log(v.magnitude);
-        }
+        // foreach (var v in vertices) {
+        //     Debug.Log(v.magnitude);
+        // }
 
         meshFilter.mesh = mesh;
 
@@ -223,7 +224,7 @@ public class Sphere : MonoBehaviour {
             var center = edgeVertices.Aggregate(Vector3.zero, (s, v) => s + v) / edgeVertices.Length;
             var faceAngle = Vector3.Angle(SceneView.currentDrawingSceneView.camera.transform.position, center);
             if (faceAngle is >= 0 and <= 90) {
-                Handles.Label(center, $"f{index}", index == intersectedIndex ? selectedHandleStyle : handleStyle);
+                Handles.Label(center, $"f{index}", index == intersectedSegmentGroupIndex ? selectedHandleStyle : handleStyle);
             }
             
             segmentGroupTriList.Add(edgeVertices);
@@ -233,7 +234,7 @@ public class Sphere : MonoBehaviour {
         Gizmos.DrawLine(Vector3.zero, userPos.position);
         
         if (userPos != null) {
-            intersectedIndex = -1;
+            intersectedSegmentGroupIndex = -1;
             var intersectPosCoords = Vector3.zero;
             for (var index = 0; index < segmentGroupTriList.Count; index++) {
                 var triList = segmentGroupTriList[index];
@@ -241,21 +242,34 @@ public class Sphere : MonoBehaviour {
                 var intersectTuv = Intersection.GetTimeAndUvCoord(position, -position, triList[0],
                     triList[1], triList[2]);
                 if (intersectTuv != null) {
-                    intersectedIndex = index;
+                    intersectedSegmentGroupIndex = index;
                     intersectPosCoords = Intersection.GetTrilinearCoordinateOfTheHit(intersectTuv.Value.x, position, -position);
                     intersectPos.position = intersectPosCoords.normalized;
                     break;
                 }
             }
 
-            if (intersectedIndex >= 0) {
-                var triList = segmentGroupTriList[intersectedIndex];
-                var abCoords = CalculateAbCoords(triList[0], triList[1], triList[2], intersectPosCoords);
-                Debug.Log($"Intersected with segment group {intersectedIndex}, {abCoords}");
+            if (intersectedSegmentGroupIndex >= 0) {
+                var triList = segmentGroupTriList[intersectedSegmentGroupIndex];
+                var (abCoords, top) = CalculateAbCoords(triList[0], triList[1], triList[2], intersectPosCoords);
+                
+                overlayText = $"Segment Group: {intersectedSegmentGroupIndex} AB: {abCoords} Top: {top}\n" +
+                $" * Segment sub index {ConvertToSegmentSubIndex(SubdivisionCount, abCoords.x, abCoords.y, top)}\n" +
+                $" * Segment index {ConvertToSegmentIndex(intersectedSegmentGroupIndex, SubdivisionCount, abCoords.x, abCoords.y, top)}";
             } else {
-                Debug.Log($"Not intersected!?");
+                Debug.Log($"?! Not intersected !?");
             }
         }
+    }
+
+    static int ConvertToSegmentSubIndex(int n, int a, int b, bool top) {
+        var parallelogramIndex = b * n - (b - 1) * b / 2 + a;
+        return parallelogramIndex * 2 - b + (top ? 1 : 0);
+    }
+
+    static int ConvertToSegmentIndex(int segmentGroupIndex, int n, int a, int b, bool top) {
+        var segmentSubIndex = ConvertToSegmentSubIndex(n, a, b, top);
+        return (segmentGroupIndex << 27) | segmentSubIndex;
     }
 
     static Tuple<Vector2Int, bool> CalculateAbCoords(Vector3 ip0, Vector3 ip1, Vector3 ip2, Vector3 intersect) {
