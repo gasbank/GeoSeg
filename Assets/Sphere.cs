@@ -262,16 +262,47 @@ public class Sphere : MonoBehaviour {
         }
     }
 
+    // AB 좌표의 B 좌표로 시작되는 세그먼트 서브 인덱스의 시작값을 계산한다.
+    static int CalculateSegmentSubIndexForB(int n, int b) {
+        return ConvertToSegmentSubIndex(n, 0, b, false);
+    }
+
+    static int SearchForB(int n, int b0, int b1, int segmentSubIndex) {
+        while (b1 - b0 > 1) {
+            var bMid = (b0 + b1) / 2;
+            switch (CalculateSegmentSubIndexForB(n, bMid) - segmentSubIndex) {
+                case < 0:
+                    b1 = bMid;
+                    continue;
+                case > 0:
+                    b0 = bMid;
+                    break;
+                default:
+                    return bMid;
+            }
+        }
+
+        return b0;
+    }
+
+    static Tuple<Vector2Int, bool> ConvertToAbCoords(int n, int segmentSubIndex) {
+        SearchForB(n, 0, n * n - 1, segmentSubIndex);
+        return new(new(0, 0), false);
+    }
+
+    // n(분할 횟수), AB 좌표, top여부 세 개를 조합해 세그먼트 그룹 내 인덱스를 계산하여 반환한다.
     static int ConvertToSegmentSubIndex(int n, int a, int b, bool top) {
         var parallelogramIndex = b * n - (b - 1) * b / 2 + a;
         return parallelogramIndex * 2 - b + (top ? 1 : 0);
     }
 
+    // 세그먼트 그룹 인덱스, n(분할 횟수), AB 좌표, top여부 네 개를 조합 해 전역 세그먼트 인덱스를 계산하여 반환한다.
     static int ConvertToSegmentIndex(int segmentGroupIndex, int n, int a, int b, bool top) {
         var segmentSubIndex = ConvertToSegmentSubIndex(n, a, b, top);
         return (segmentGroupIndex << 27) | segmentSubIndex;
     }
 
+    // 세 꼭지점(ip0, ip1, ip2)으로 정의되는 삼각형 내의 특정 지점(intersect)를 AB 좌표, top여부로 변환하여 반환한다.
     static Tuple<Vector2Int, bool> CalculateAbCoords(Vector3 ip0, Vector3 ip1, Vector3 ip2, Vector3 intersect) {
         var p = intersect - ip0;
         var p01 = ip1 - ip0;
