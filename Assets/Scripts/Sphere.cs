@@ -11,6 +11,7 @@ public class Sphere : MonoBehaviour {
     public MeshFilter meshFilter;
     public Transform userPos;
     public Transform intersectPos;
+    public Transform centerPos;
     public int intersectedSegmentGroupIndex = -1;
 
     public static string overlayText;
@@ -22,7 +23,7 @@ public class Sphere : MonoBehaviour {
     static readonly float Hh = 2 / Mathf.Sqrt(10 + 2 * Mathf.Sqrt(5));
     static readonly float Wh = Hh * (1 + Mathf.Sqrt(5)) / 2;
 
-    readonly int[][] edgesPerFaces = {
+    static readonly int[][] edgesPerFaces = {
         // Face 0
         new[] {
             0,
@@ -145,7 +146,7 @@ public class Sphere : MonoBehaviour {
         },
     };
 
-    readonly Vector3[] vertices = {
+    static readonly Vector3[] vertices = {
         new(0, -Hh, -Wh),
         new(0, +Hh, -Wh),
         new(0, +Hh, +Wh),
@@ -267,13 +268,19 @@ public class Sphere : MonoBehaviour {
                 var segmentIndex = ConvertToSegmentIndex(intersectedSegmentGroupIndex, SubdivisionCount, abCoords.x,
                     abCoords.y, top);
 
-                overlayText = $"Lat: {lat * Mathf.Rad2Deg}°, Lng: {lng * Mathf.Rad2Deg}°\n"
+                centerPos.position = CalculateSegmentCenter(SubdivisionCount, segmentIndex);
+
+                var (centerLat, centerLng) = CalculateSegmentCenterLatLng(SubdivisionCount, segmentIndex);
+
+                overlayText = $"Intersection Lat: {lat * Mathf.Rad2Deg}°, Lng: {lng * Mathf.Rad2Deg}°\n"
                               + $"Segment Group: {intersectedSegmentGroupIndex} ABT: {(abCoords, top)}\n"
                               + $" * Segment sub index {segmentSubIndex}\n"
                               + $" * Segment index {segmentIndex}\n"
                               + "-----------\n"
                               + $" * ABT (check): {ConvertSubSegIndexToAbt(SubdivisionCount, segmentSubIndex)}\n"
-                              + $" * Segment Group & ABT (check): {ConvertSegIndexToSegGroupAndAbt(SubdivisionCount, segmentIndex)}";
+                              + $" * Segment Group & ABT (check): {ConvertSegIndexToSegGroupAndAbt(SubdivisionCount, segmentIndex)}\n"
+                              + "-----------\n"
+                              + $"Segment Center Lat: {centerLat * Mathf.Rad2Deg}°, Lng: {centerLng * Mathf.Rad2Deg}°";
             } else {
                 Debug.Log($"?! Not intersected !?");
             }
@@ -352,10 +359,28 @@ public class Sphere : MonoBehaviour {
     // 즉 32비트에서 1비트+5비트를 제외한 비트를 segment sub index 공간으로 쓸 수 있다.
     const int SegmentSubIndexBitCount = 32 - 1 - 5;
 
+    // Seg Index를 Seg Group & ABT로 변환해서 반환
     static Tuple<int, Vector2Int, bool> ConvertSegIndexToSegGroupAndAbt(int n, int segmentIndex) {
         var segSubIndex = segmentIndex & ((1 << SegmentSubIndexBitCount) - 1);
         var (abCoords, top) = ConvertSubSegIndexToAbt(n, segSubIndex);
         return Tuple.Create(segmentIndex >> SegmentSubIndexBitCount, abCoords, top);
+    }
+    
+    // Seg Index의 중심 좌표를 계산해서 반환
+    static Vector3 CalculateSegmentCenter(int n, int segmentIndex) {
+        var (segGroupIndex, ab, t) = ConvertSegIndexToSegGroupAndAbt(n, segmentIndex);
+        var segGroupVerts = edgesPerFaces[segGroupIndex].Select(e => vertices[e]).ToArray();
+        var axisA = (segGroupVerts[1] - segGroupVerts[0]) / n;
+        var axisB = (segGroupVerts[2] - segGroupVerts[0]) / n;
+
+        var parallelogramCorner = segGroupVerts[0] + ab.x * axisA + ab.y * axisB;
+        var offset = axisA + axisB;
+        return (parallelogramCorner + offset / 3 * (t ? 2 : 1)).normalized;
+    }
+    
+    // Seg Index의 중심 좌표의 위도 경도를 계산해서 반환
+    static (float, float) CalculateSegmentCenterLatLng(int n, int segmentIndex) {
+        return CalculateLatLng(CalculateSegmentCenter(n, segmentIndex));
     }
 
     // n(분할 횟수), AB 좌표, top여부 세 개를 조합해 세그먼트 그룹 내 인덱스를 계산하여 반환한다.
