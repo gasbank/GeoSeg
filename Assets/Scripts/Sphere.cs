@@ -263,19 +263,53 @@ public class Sphere : MonoBehaviour {
     }
 
     // AB 좌표의 B 좌표로 시작되는 세그먼트 서브 인덱스의 시작값을 계산한다.
-    static int CalculateSegmentSubIndexForB(int n, int b) {
+    public static int CalculateSegmentSubIndexForB(int n, int b) {
+        if (n <= 0) {
+            throw new IndexOutOfRangeException(nameof(n));
+        }
         return ConvertToSegmentSubIndex(n, 0, b, false);
     }
 
-    static int SearchForB(int n, int b0, int b1, int segmentSubIndex) {
+    public static int SearchForB(int n, int b0, int b1, int segmentSubIndex) {
+        if (n <= 0) {
+            throw new IndexOutOfRangeException(nameof(n));
+        }
+        
+        if (b0 < 0) {
+            throw new IndexOutOfRangeException(nameof(b0));
+        }
+        
+        if (b1 >= n) {
+            throw new IndexOutOfRangeException(nameof(b1));
+        }
+        
+        if (b0 > b1) {
+            throw new IndexOutOfRangeException($"{nameof(b0)}, {nameof(b1)}");
+        }
+
+        var subIndex0 = CalculateSegmentSubIndexForB(n, b0);
+        var subIndex1 = CalculateSegmentSubIndexForB(n, b1);
+
+        if (subIndex0 > segmentSubIndex || subIndex1 < segmentSubIndex) {
+            throw new IndexOutOfRangeException(nameof(segmentSubIndex));
+        }
+
+        if (subIndex0 == segmentSubIndex) {
+            return b0;
+        }
+        
+        if (subIndex1 == segmentSubIndex) {
+            return b1;
+        }
+        
         while (b1 - b0 > 1) {
             var bMid = (b0 + b1) / 2;
             switch (CalculateSegmentSubIndexForB(n, bMid) - segmentSubIndex) {
                 case < 0:
-                    b1 = bMid;
+                    b0 = bMid;
                     continue;
                 case > 0:
-                    b0 = bMid;
+                    b1 = bMid;
                     break;
                 default:
                     return bMid;
@@ -285,13 +319,20 @@ public class Sphere : MonoBehaviour {
         return b0;
     }
 
-    static Tuple<Vector2Int, bool> ConvertToAbCoords(int n, int segmentSubIndex) {
-        SearchForB(n, 0, n * n - 1, segmentSubIndex);
-        return new(new(0, 0), false);
+    public static Tuple<Vector2Int, bool> ConvertToAbtCoords(int n, int segmentSubIndex) {
+        if (n <= 0) {
+            throw new IndexOutOfRangeException(nameof(n));
+        }
+        var b = SearchForB(n, 0, n - 1, segmentSubIndex);
+        var a = (segmentSubIndex - CalculateSegmentSubIndexForB(n, b)) / 2;
+        return new(new(a, b), (b % 2 == 0 && segmentSubIndex % 2 == 0 || b % 2 == 1 && segmentSubIndex % 2 == 1) == false);
     }
 
     // n(분할 횟수), AB 좌표, top여부 세 개를 조합해 세그먼트 그룹 내 인덱스를 계산하여 반환한다.
     static int ConvertToSegmentSubIndex(int n, int a, int b, bool top) {
+        if (n <= 0) {
+            throw new IndexOutOfRangeException(nameof(n));
+        }
         var parallelogramIndex = b * n - (b - 1) * b / 2 + a;
         return parallelogramIndex * 2 - b + (top ? 1 : 0);
     }
