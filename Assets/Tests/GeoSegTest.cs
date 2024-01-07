@@ -52,27 +52,27 @@ public class GeoSegTest
     public void TestConvertToAbtCoords()
     {
         // n = 0
-        Assert.Throws<IndexOutOfRangeException>(() => Sphere.ConvertToAbtCoords(0, 0));
+        Assert.Throws<IndexOutOfRangeException>(() => Sphere.ConvertSubSegIndexToAbt(0, 0));
         
         // n = 1
-        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 0), false), Sphere.ConvertToAbtCoords(1, 0));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 0), false), Sphere.ConvertSubSegIndexToAbt(1, 0));
         
         // n = 2
-        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 0), false), Sphere.ConvertToAbtCoords(2, 0));
-        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 0), true), Sphere.ConvertToAbtCoords(2, 1));
-        Assert.AreEqual(Tuple.Create(new Vector2Int(1, 0), false), Sphere.ConvertToAbtCoords(2, 2));
-        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 1), false), Sphere.ConvertToAbtCoords(2, 3));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 0), false), Sphere.ConvertSubSegIndexToAbt(2, 0));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 0), true), Sphere.ConvertSubSegIndexToAbt(2, 1));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(1, 0), false), Sphere.ConvertSubSegIndexToAbt(2, 2));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 1), false), Sphere.ConvertSubSegIndexToAbt(2, 3));
         
         // n = 3
-        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 0), false), Sphere.ConvertToAbtCoords(3, 0));
-        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 0), true), Sphere.ConvertToAbtCoords(3, 1));
-        Assert.AreEqual(Tuple.Create(new Vector2Int(1, 0), false), Sphere.ConvertToAbtCoords(3, 2));
-        Assert.AreEqual(Tuple.Create(new Vector2Int(1, 0), true), Sphere.ConvertToAbtCoords(3, 3));
-        Assert.AreEqual(Tuple.Create(new Vector2Int(2, 0), false), Sphere.ConvertToAbtCoords(3, 4));
-        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 1), false), Sphere.ConvertToAbtCoords(3, 5));
-        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 1), true), Sphere.ConvertToAbtCoords(3, 6));
-        Assert.AreEqual(Tuple.Create(new Vector2Int(1, 1), false), Sphere.ConvertToAbtCoords(3, 7));
-        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 2), false), Sphere.ConvertToAbtCoords(3, 8));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 0), false), Sphere.ConvertSubSegIndexToAbt(3, 0));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 0), true), Sphere.ConvertSubSegIndexToAbt(3, 1));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(1, 0), false), Sphere.ConvertSubSegIndexToAbt(3, 2));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(1, 0), true), Sphere.ConvertSubSegIndexToAbt(3, 3));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(2, 0), false), Sphere.ConvertSubSegIndexToAbt(3, 4));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 1), false), Sphere.ConvertSubSegIndexToAbt(3, 5));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 1), true), Sphere.ConvertSubSegIndexToAbt(3, 6));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(1, 1), false), Sphere.ConvertSubSegIndexToAbt(3, 7));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 2), false), Sphere.ConvertSubSegIndexToAbt(3, 8));
     }
 
     // A UnityTest behaves like a coroutine in Play Mode. In Edit Mode you can use

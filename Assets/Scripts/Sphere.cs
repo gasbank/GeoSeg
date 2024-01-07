@@ -159,8 +159,9 @@ public class Sphere : MonoBehaviour {
         new(+Hh, +Wh, 0),
         new(-Hh, +Wh, 0),
     };
-    
-    const int SubdivisionCount = 5;
+
+    const int SubdivisionCount = 5;//8192;
+    const int RenderingSubdivisionCountLimit = 100;
 
     void Start() {
         var mesh = new Mesh { vertices = vertices };
@@ -186,8 +187,14 @@ public class Sphere : MonoBehaviour {
                 vertices[edgesPerFace[1]],
                 vertices[edgesPerFace[2]],
             };
+
+#pragma warning disable CS0162
+            if (SubdivisionCount > RenderingSubdivisionCountLimit) {
+                Debug.LogWarning("Subdivision count is too high for rendering...");
+            }
+#pragma warning restore CS0162
             
-            mf.mesh = CreateSubdividedTri(segmentGroupTri, SubdivisionCount);
+            mf.mesh = CreateSubdividedTri(segmentGroupTri, Mathf.Min(SubdivisionCount, RenderingSubdivisionCountLimit));
             var mr = go.AddComponent<MeshRenderer>();
             mr.materials = new[] {
                 mat,
@@ -251,14 +258,22 @@ public class Sphere : MonoBehaviour {
 
             if (intersectedSegmentGroupIndex >= 0) {
                 var triList = segmentGroupTriList[intersectedSegmentGroupIndex];
+
+                var (lat, lng) = CalculateLatLng(intersectPosCoords);
+                
                 var (abCoords, top) = CalculateAbCoords(triList[0], triList[1], triList[2], intersectPosCoords);
 
                 var segmentSubIndex = ConvertToSegmentSubIndex(SubdivisionCount, abCoords.x, abCoords.y, top);
+                var segmentIndex = ConvertToSegmentIndex(intersectedSegmentGroupIndex, SubdivisionCount, abCoords.x,
+                    abCoords.y, top);
 
-                overlayText = $"Segment Group: {intersectedSegmentGroupIndex} ABT: {(abCoords, top)}\n"
+                overlayText = $"Lat: {lat * Mathf.Rad2Deg}°, Lng: {lng * Mathf.Rad2Deg}°\n"
+                              + $"Segment Group: {intersectedSegmentGroupIndex} ABT: {(abCoords, top)}\n"
                               + $" * Segment sub index {segmentSubIndex}\n"
-                              + $" * Segment index {ConvertToSegmentIndex(intersectedSegmentGroupIndex, SubdivisionCount, abCoords.x, abCoords.y, top)}\n"
-                              + $" * ABT (check): {ConvertToAbtCoords(SubdivisionCount, segmentSubIndex)}";
+                              + $" * Segment index {segmentIndex}\n"
+                              + "-----------\n"
+                              + $" * ABT (check): {ConvertSubSegIndexToAbt(SubdivisionCount, segmentSubIndex)}\n"
+                              + $" * Segment Group & ABT (check): {ConvertSegIndexToSegGroupAndAbt(SubdivisionCount, segmentIndex)}";
             } else {
                 Debug.Log($"?! Not intersected !?");
             }
@@ -273,6 +288,8 @@ public class Sphere : MonoBehaviour {
         return ConvertToSegmentSubIndex(n, 0, b, false);
     }
 
+    // 세그먼트 서브 인덱스가 주어졌을 때, B 좌표를 이진 탐색 방법으로 찾아낸다.
+    // 단, 찾아낸 B 좌표는 b0 ~ b1 범위에 있다고 가정한다.
     public static int SearchForB(int n, int b0, int b1, int segmentSubIndex) {
         if (n <= 0) {
             throw new IndexOutOfRangeException(nameof(n));
@@ -322,13 +339,23 @@ public class Sphere : MonoBehaviour {
         return b0;
     }
 
-    public static Tuple<Vector2Int, bool> ConvertToAbtCoords(int n, int segmentSubIndex) {
+    public static Tuple<Vector2Int, bool> ConvertSubSegIndexToAbt(int n, int segmentSubIndex) {
         if (n <= 0) {
             throw new IndexOutOfRangeException(nameof(n));
         }
         var b = SearchForB(n, 0, n - 1, segmentSubIndex);
         var a = (segmentSubIndex - CalculateSegmentSubIndexForB(n, b)) / 2;
         return new(new(a, b), (b % 2 == 0 && segmentSubIndex % 2 == 0 || b % 2 == 1 && segmentSubIndex % 2 == 1) == false);
+    }
+    
+    // 32비트 중 MSB 1비트는 부호 비트로 남겨두고, 세그먼트 그룹 인덱스는 총 0~19 범위이므로 5비트가 필요하다.
+    // 즉 32비트에서 1비트+5비트를 제외한 비트를 segment sub index 공간으로 쓸 수 있다.
+    const int SegmentSubIndexBitCount = 32 - 1 - 5;
+
+    static Tuple<int, Vector2Int, bool> ConvertSegIndexToSegGroupAndAbt(int n, int segmentIndex) {
+        var segSubIndex = segmentIndex & ((1 << SegmentSubIndexBitCount) - 1);
+        var (abCoords, top) = ConvertSubSegIndexToAbt(n, segSubIndex);
+        return Tuple.Create(segmentIndex >> SegmentSubIndexBitCount, abCoords, top);
     }
 
     // n(분할 횟수), AB 좌표, top여부 세 개를 조합해 세그먼트 그룹 내 인덱스를 계산하여 반환한다.
@@ -343,9 +370,8 @@ public class Sphere : MonoBehaviour {
     // 세그먼트 그룹 인덱스, n(분할 횟수), AB 좌표, top여부 네 개를 조합 해 전역 세그먼트 인덱스를 계산하여 반환한다.
     static int ConvertToSegmentIndex(int segmentGroupIndex, int n, int a, int b, bool top) {
         var segmentSubIndex = ConvertToSegmentSubIndex(n, a, b, top);
-        // 32비트 중 MSB 1비트는 부호 비트로 남겨두고, 세그먼트 그룹 인덱스는 총 0~19 범위이므로 5비트가 필요하다.
-        // 즉 32비트에서 1비트+5비트를 제외한 비트를 segment sub index 공간으로 쓸 수 있다.
-        return (segmentGroupIndex << 26) | segmentSubIndex;
+        
+        return (segmentGroupIndex << SegmentSubIndexBitCount) | segmentSubIndex;
     }
 
     // 세 꼭지점(ip0, ip1, ip2)으로 정의되는 삼각형 내의 특정 지점(intersect)를 AB 좌표, top여부로 변환하여 반환한다.
@@ -367,6 +393,32 @@ public class Sphere : MonoBehaviour {
         
         //ap * SubdivisionCount
         return Tuple.Create(new Vector2Int((int)api, (int)bpi), apf + bpf > 1);
+    }
+
+    // 임의의 지점 p의 위도, 경도를 계산하여 라디안으로 반환한다.
+    // 위도는 -pi/2 ~ +pi/2 범위
+    // 경도는 -pi ~ pi 범위다.
+    static (float, float) CalculateLatLng(Vector3 p) {
+        var pNormalized = p.normalized;
+        
+        var lng = Normalize(Mathf.Atan2(pNormalized.z, pNormalized.x), -Mathf.PI, Mathf.PI);
+        
+        var lngVec = new Vector3(Mathf.Cos(lng), 0, Mathf.Sin(lng));
+        
+        var lat = Normalize(Mathf.Sign(pNormalized.y) * Vector3.Angle(lngVec, pNormalized) * Mathf.Deg2Rad, -Mathf.PI / 2, Mathf.PI / 2);
+        return (lat, lng);
+    }
+    
+    // https://stackoverflow.com/questions/1628386/normalise-orientation-between-0-and-360
+    // Normalizes any number to an arbitrary range 
+    // by assuming the range wraps around when going below min or above max 
+    static float Normalize(float value, float start, float end) 
+    {
+        var width       = end - start   ;   // 
+        var offsetValue = value - start ;   // value relative to 0
+
+        return ( offsetValue - ( Mathf.Floor( offsetValue / width ) * width ) ) + start ;
+        // + start to reset back to start of original range
     }
 #endif
 
