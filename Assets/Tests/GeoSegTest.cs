@@ -4,37 +4,35 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
 
-public class GeoSegTest
-{
+public class GeoSegTest {
     [Test]
     public void TestCalculateSegmentSubIndexForB() {
         // n = 0
         Assert.Throws<IndexOutOfRangeException>(() => Sphere.CalculateSegmentSubIndexForB(0, 0));
-        
+
         // n = 1
         Assert.AreEqual(0, Sphere.CalculateSegmentSubIndexForB(1, 0));
-        
+
         // n = 2
         Assert.AreEqual(0, Sphere.CalculateSegmentSubIndexForB(2, 0));
         Assert.AreEqual(3, Sphere.CalculateSegmentSubIndexForB(2, 1));
     }
 
     [Test]
-    public void TestSearchForB()
-    {
+    public void TestSearchForB() {
         // n = 0
         Assert.Throws<IndexOutOfRangeException>(() => Sphere.SearchForB(0, 0, 1, 0));
 
         // n = 1
         Assert.AreEqual(0, Sphere.SearchForB(1, 0, 0, 0));
-        
+
         // n = 2
         Assert.AreEqual(0, Sphere.SearchForB(2, 0, 1, 0));
         Assert.AreEqual(0, Sphere.SearchForB(2, 0, 1, 1));
         Assert.AreEqual(0, Sphere.SearchForB(2, 0, 1, 2));
         Assert.AreEqual(1, Sphere.SearchForB(2, 0, 1, 3));
         Assert.Throws<IndexOutOfRangeException>(() => Sphere.SearchForB(2, 0, 2, 0));
-        
+
         // n = 3
         Assert.AreEqual(0, Sphere.SearchForB(3, 0, 2, 0));
         Assert.AreEqual(0, Sphere.SearchForB(3, 0, 2, 1));
@@ -47,22 +45,21 @@ public class GeoSegTest
         Assert.AreEqual(2, Sphere.SearchForB(3, 0, 2, 8));
         Assert.Throws<IndexOutOfRangeException>(() => Sphere.SearchForB(3, 0, 3, 0));
     }
-    
+
     [Test]
-    public void TestConvertToAbtCoords()
-    {
+    public void TestConvertToAbtCoords() {
         // n = 0
         Assert.Throws<IndexOutOfRangeException>(() => Sphere.ConvertSubSegIndexToAbt(0, 0));
-        
+
         // n = 1
         Assert.AreEqual(Tuple.Create(new Vector2Int(0, 0), false), Sphere.ConvertSubSegIndexToAbt(1, 0));
-        
+
         // n = 2
         Assert.AreEqual(Tuple.Create(new Vector2Int(0, 0), false), Sphere.ConvertSubSegIndexToAbt(2, 0));
         Assert.AreEqual(Tuple.Create(new Vector2Int(0, 0), true), Sphere.ConvertSubSegIndexToAbt(2, 1));
         Assert.AreEqual(Tuple.Create(new Vector2Int(1, 0), false), Sphere.ConvertSubSegIndexToAbt(2, 2));
         Assert.AreEqual(Tuple.Create(new Vector2Int(0, 1), false), Sphere.ConvertSubSegIndexToAbt(2, 3));
-        
+
         // n = 3
         Assert.AreEqual(Tuple.Create(new Vector2Int(0, 0), false), Sphere.ConvertSubSegIndexToAbt(3, 0));
         Assert.AreEqual(Tuple.Create(new Vector2Int(0, 0), true), Sphere.ConvertSubSegIndexToAbt(3, 1));
@@ -75,11 +72,43 @@ public class GeoSegTest
         Assert.AreEqual(Tuple.Create(new Vector2Int(0, 2), false), Sphere.ConvertSubSegIndexToAbt(3, 8));
     }
 
+    [Test]
+    public void TestGetNeighborsForSegmentSubIndex() {
+        Assert.AreEqual(new[] {
+            1,
+            2,
+            3,
+            4,
+            5,
+            7,
+            8,
+            10,
+            11,
+            12,
+            13,
+            14,
+        }, Sphere.GetNeighborsForSegmentSubIndex(4, 9));
+        
+        Assert.AreEqual(new[] {
+            3,
+            4,
+            5,
+            14,
+            15,
+            17,
+            18,
+            24,
+            25,
+            26,
+            27,
+            28,
+        }, Sphere.GetNeighborsForSegmentSubIndex(7, 16));
+    }
+
     // A UnityTest behaves like a coroutine in Play Mode. In Edit Mode you can use
     // `yield return null;` to skip a frame.
     [UnityTest]
-    public IEnumerator GeoSegTestWithEnumeratorPasses()
-    {
+    public IEnumerator GeoSegTestWithEnumeratorPasses() {
         // Use the Assert class to test conditions.
         // Use yield to skip a frame.
         yield return null;

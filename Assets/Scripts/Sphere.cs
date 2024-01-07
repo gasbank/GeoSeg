@@ -161,7 +161,7 @@ public class Sphere : MonoBehaviour {
         new(-Hh, +Wh, 0),
     };
 
-    const int SubdivisionCount = 5;//8192;
+    const int SubdivisionCount = 5; //8192;
     const int RenderingSubdivisionCountLimit = 100;
 
     void Start() {
@@ -194,7 +194,7 @@ public class Sphere : MonoBehaviour {
                 Debug.LogWarning("Subdivision count is too high for rendering...");
             }
 #pragma warning restore CS0162
-            
+
             mf.mesh = CreateSubdividedTri(segmentGroupTri, Mathf.Min(SubdivisionCount, RenderingSubdivisionCountLimit));
             var mr = go.AddComponent<MeshRenderer>();
             mr.materials = new[] {
@@ -216,31 +216,37 @@ public class Sphere : MonoBehaviour {
             Gizmos.DrawSphere(v, 0.025f);
             Handles.Label(v, $"vt{index}");
         }
-        
-        GUIStyle handleStyle = new() { normal = { textColor = Color.grey }, fontSize = 20 };
-        GUIStyle selectedHandleStyle = new() { normal = { textColor = Color.red }, fontSize = 20 };
+
+        GUIStyle handleStyle = new() {
+            normal = { textColor = Color.grey },
+            fontSize = 20
+        };
+        GUIStyle selectedHandleStyle = new() {
+            normal = { textColor = Color.red },
+            fontSize = 20
+        };
 
         List<Vector3[]> segmentGroupTriList = new();
 
 
-        
         for (var index = 0; index < edgesPerFaces.Length; index++) {
             var e = edgesPerFaces[index];
             var edgeVertices = e.Select(ee => vertices[ee]).ToArray();
             Gizmos.DrawLineStrip(edgeVertices, true);
-            
+
             var center = edgeVertices.Aggregate(Vector3.zero, (s, v) => s + v) / edgeVertices.Length;
             var faceAngle = Vector3.Angle(SceneView.currentDrawingSceneView.camera.transform.position, center);
             if (faceAngle is >= 0 and <= 90) {
-                Handles.Label(center, $"f{index}", index == intersectedSegmentGroupIndex ? selectedHandleStyle : handleStyle);
+                Handles.Label(center, $"f{index}",
+                    index == intersectedSegmentGroupIndex ? selectedHandleStyle : handleStyle);
             }
-            
+
             segmentGroupTriList.Add(edgeVertices);
         }
 
         Gizmos.color = Color.white;
         Gizmos.DrawLine(Vector3.zero, userPos.position);
-        
+
         if (userPos != null) {
             intersectedSegmentGroupIndex = -1;
             var intersectPosCoords = Vector3.zero;
@@ -251,7 +257,8 @@ public class Sphere : MonoBehaviour {
                     triList[1], triList[2]);
                 if (intersectTuv != null) {
                     intersectedSegmentGroupIndex = index;
-                    intersectPosCoords = Intersection.GetTrilinearCoordinateOfTheHit(intersectTuv.Value.x, position, -position);
+                    intersectPosCoords =
+                        Intersection.GetTrilinearCoordinateOfTheHit(intersectTuv.Value.x, position, -position);
                     intersectPos.position = intersectPosCoords.normalized;
                     break;
                 }
@@ -261,7 +268,7 @@ public class Sphere : MonoBehaviour {
                 var triList = segmentGroupTriList[intersectedSegmentGroupIndex];
 
                 var (lat, lng) = CalculateLatLng(intersectPosCoords);
-                
+
                 var (abCoords, top) = CalculateAbCoords(triList[0], triList[1], triList[2], intersectPosCoords);
 
                 var segmentSubIndex = ConvertToSegmentSubIndex(SubdivisionCount, abCoords.x, abCoords.y, top);
@@ -292,6 +299,7 @@ public class Sphere : MonoBehaviour {
         if (n <= 0) {
             throw new IndexOutOfRangeException(nameof(n));
         }
+
         return ConvertToSegmentSubIndex(n, 0, b, false);
     }
 
@@ -301,15 +309,15 @@ public class Sphere : MonoBehaviour {
         if (n <= 0) {
             throw new IndexOutOfRangeException(nameof(n));
         }
-        
+
         if (b0 < 0) {
             throw new IndexOutOfRangeException(nameof(b0));
         }
-        
+
         if (b1 >= n) {
             throw new IndexOutOfRangeException(nameof(b1));
         }
-        
+
         if (b0 > b1) {
             throw new IndexOutOfRangeException($"{nameof(b0)}, {nameof(b1)}");
         }
@@ -324,11 +332,11 @@ public class Sphere : MonoBehaviour {
         if (subIndex0 == segmentSubIndex) {
             return b0;
         }
-        
+
         if (subIndex1 == segmentSubIndex) {
             return b1;
         }
-        
+
         while (b1 - b0 > 1) {
             var bMid = (b0 + b1) / 2;
             switch (CalculateSegmentSubIndexForB(n, bMid) - segmentSubIndex) {
@@ -350,11 +358,13 @@ public class Sphere : MonoBehaviour {
         if (n <= 0) {
             throw new IndexOutOfRangeException(nameof(n));
         }
+
         var b = SearchForB(n, 0, n - 1, segmentSubIndex);
         var a = (segmentSubIndex - CalculateSegmentSubIndexForB(n, b)) / 2;
-        return new(new(a, b), (b % 2 == 0 && segmentSubIndex % 2 == 0 || b % 2 == 1 && segmentSubIndex % 2 == 1) == false);
+        return new(new(a, b),
+            (b % 2 == 0 && segmentSubIndex % 2 == 0 || b % 2 == 1 && segmentSubIndex % 2 == 1) == false);
     }
-    
+
     // 32비트 중 MSB 1비트는 부호 비트로 남겨두고, 세그먼트 그룹 인덱스는 총 0~19 범위이므로 5비트가 필요하다.
     // 즉 32비트에서 1비트+5비트를 제외한 비트를 segment sub index 공간으로 쓸 수 있다.
     const int SegmentSubIndexBitCount = 32 - 1 - 5;
@@ -365,7 +375,7 @@ public class Sphere : MonoBehaviour {
         var (abCoords, top) = ConvertSubSegIndexToAbt(n, segSubIndex);
         return Tuple.Create(segmentIndex >> SegmentSubIndexBitCount, abCoords, top);
     }
-    
+
     // Seg Index의 중심 좌표를 계산해서 반환
     static Vector3 CalculateSegmentCenter(int n, int segmentIndex) {
         var (segGroupIndex, ab, t) = ConvertSegIndexToSegGroupAndAbt(n, segmentIndex);
@@ -377,7 +387,7 @@ public class Sphere : MonoBehaviour {
         var offset = axisA + axisB;
         return (parallelogramCorner + offset / 3 * (t ? 2 : 1)).normalized;
     }
-    
+
     // Seg Index의 중심 좌표의 위도 경도를 계산해서 반환
     static (float, float) CalculateSegmentCenterLatLng(int n, int segmentIndex) {
         return CalculateLatLng(CalculateSegmentCenter(n, segmentIndex));
@@ -386,8 +396,18 @@ public class Sphere : MonoBehaviour {
     // n(분할 횟수), AB 좌표, top여부 세 개를 조합해 세그먼트 그룹 내 인덱스를 계산하여 반환한다.
     static int ConvertToSegmentSubIndex(int n, int a, int b, bool top) {
         if (n <= 0) {
-            throw new IndexOutOfRangeException(nameof(n));
+            throw new ArgumentOutOfRangeException(nameof(n));
         }
+
+        if (a + b >= n) {
+            throw new ArgumentOutOfRangeException($"{nameof(a)} + {nameof(b)}");
+        }
+
+        if (a + b == n - 1 && top) {
+            // 오른쪽 가장자리 변에 맞닿은 세그먼트는 top일 수 없다.
+            throw new ArgumentOutOfRangeException($"{nameof(a)} + {nameof(b)} + {nameof(top)}");
+        }
+
         var parallelogramIndex = b * n - (b - 1) * b / 2 + a;
         return parallelogramIndex * 2 - b + (top ? 1 : 0);
     }
@@ -395,7 +415,7 @@ public class Sphere : MonoBehaviour {
     // 세그먼트 그룹 인덱스, n(분할 횟수), AB 좌표, top여부 네 개를 조합 해 전역 세그먼트 인덱스를 계산하여 반환한다.
     static int ConvertToSegmentIndex(int segmentGroupIndex, int n, int a, int b, bool top) {
         var segmentSubIndex = ConvertToSegmentSubIndex(n, a, b, top);
-        
+
         return (segmentGroupIndex << SegmentSubIndexBitCount) | segmentSubIndex;
     }
 
@@ -415,7 +435,7 @@ public class Sphere : MonoBehaviour {
 
         var apf = math.modf(ap * SubdivisionCount, out var api);
         var bpf = math.modf(bp * SubdivisionCount, out var bpi);
-        
+
         //ap * SubdivisionCount
         return Tuple.Create(new Vector2Int((int)api, (int)bpi), apf + bpf > 1);
     }
@@ -425,26 +445,72 @@ public class Sphere : MonoBehaviour {
     // 경도는 -pi ~ pi 범위다.
     static (float, float) CalculateLatLng(Vector3 p) {
         var pNormalized = p.normalized;
-        
+
         var lng = Normalize(Mathf.Atan2(pNormalized.z, pNormalized.x), -Mathf.PI, Mathf.PI);
-        
+
         var lngVec = new Vector3(Mathf.Cos(lng), 0, Mathf.Sin(lng));
-        
-        var lat = Normalize(Mathf.Sign(pNormalized.y) * Vector3.Angle(lngVec, pNormalized) * Mathf.Deg2Rad, -Mathf.PI / 2, Mathf.PI / 2);
+
+        var lat = Normalize(Mathf.Sign(pNormalized.y) * Vector3.Angle(lngVec, pNormalized) * Mathf.Deg2Rad,
+            -Mathf.PI / 2, Mathf.PI / 2);
         return (lat, lng);
     }
-    
+
     // https://stackoverflow.com/questions/1628386/normalise-orientation-between-0-and-360
     // Normalizes any number to an arbitrary range 
     // by assuming the range wraps around when going below min or above max 
-    static float Normalize(float value, float start, float end) 
-    {
-        var width       = end - start   ;   // 
-        var offsetValue = value - start ;   // value relative to 0
+    static float Normalize(float value, float start, float end) {
+        var width = end - start; // 
+        var offsetValue = value - start; // value relative to 0
 
-        return ( offsetValue - ( Mathf.Floor( offsetValue / width ) * width ) ) + start ;
+        return (offsetValue - (Mathf.Floor(offsetValue / width) * width)) + start;
         // + start to reset back to start of original range
     }
+    
+    // 세그먼트 그룹 내에서 완전히 모든 이웃 세그먼트가 찾아지는 경우에 대해
+    // 이웃 세그먼트 서브 인덱스를 모두 반환한다.
+    public static int[] GetNeighborsForSegmentSubIndex(int n, int segmentSubIndex) {
+        if (n < 4) {
+            throw new ArgumentOutOfRangeException(nameof(n));
+        }
+
+        var (ab, t) = ConvertSubSegIndexToAbt(n, segmentSubIndex);
+
+        List<int> ret = new();
+
+        if (t == false) {
+            ret.Add(ConvertToSegmentSubIndex(n, ab.x - 1, ab.y - 1, true));
+            ret.Add(ConvertToSegmentSubIndex(n, ab.x, ab.y - 1, false));
+        }
+        
+        ret.Add(ConvertToSegmentSubIndex(n, ab.x, ab.y - 1, true));
+        
+        ret.Add(ConvertToSegmentSubIndex(n, ab.x + 1, ab.y - 1, false));
+        ret.Add(ConvertToSegmentSubIndex(n, ab.x + 1, ab.y - 1, true));
+
+        if (t == false) {
+            ret.Add(ConvertToSegmentSubIndex(n, ab.x - 1, ab.y, false));
+        }
+        
+        ret.Add(ConvertToSegmentSubIndex(n, ab.x - 1, ab.y, true));
+        
+        ret.Add(ConvertToSegmentSubIndex(n, ab.x, ab.y, t == false));
+        
+        ret.Add(ConvertToSegmentSubIndex(n, ab.x + 1, ab.y, false));
+        if (t) {
+            ret.Add(ConvertToSegmentSubIndex(n, ab.x + 1, ab.y, true));
+        }
+        
+        ret.Add(ConvertToSegmentSubIndex(n, ab.x - 1, ab.y + 1, false));
+        ret.Add(ConvertToSegmentSubIndex(n, ab.x - 1, ab.y + 1, true));
+        
+        ret.Add(ConvertToSegmentSubIndex(n, ab.x, ab.y + 1, false));
+        if (t) {
+            ret.Add(ConvertToSegmentSubIndex(n, ab.x, ab.y + 1, true));
+            ret.Add(ConvertToSegmentSubIndex(n, ab.x + 1, ab.y + 1, false));
+        }
+        
+        return ret.ToArray();
+    } 
 #endif
 
     static Mesh CreateSubdividedTri(IReadOnlyList<Vector3> vList, int n) {
@@ -504,11 +570,10 @@ public class Sphere : MonoBehaviour {
         mesh.SetTriangles(triangles.Take(3).ToList(), 1);
         mesh.SetTriangles(triangles.Skip(3 * ((n - 1) * 2)).Take(3).ToList(), 2);
         mesh.SetTriangles(triangles.Skip(3 * (totalFCount - 1)).Take(3).ToList(), 3);
-        
+
         return mesh;
     }
-    
+
     void Update() {
-        
     }
 }
