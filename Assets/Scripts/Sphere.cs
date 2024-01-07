@@ -252,10 +252,13 @@ public class Sphere : MonoBehaviour {
             if (intersectedSegmentGroupIndex >= 0) {
                 var triList = segmentGroupTriList[intersectedSegmentGroupIndex];
                 var (abCoords, top) = CalculateAbCoords(triList[0], triList[1], triList[2], intersectPosCoords);
-                
-                overlayText = $"Segment Group: {intersectedSegmentGroupIndex} AB: {abCoords} Top: {top}\n" +
-                $" * Segment sub index {ConvertToSegmentSubIndex(SubdivisionCount, abCoords.x, abCoords.y, top)}\n" +
-                $" * Segment index {ConvertToSegmentIndex(intersectedSegmentGroupIndex, SubdivisionCount, abCoords.x, abCoords.y, top)}";
+
+                var segmentSubIndex = ConvertToSegmentSubIndex(SubdivisionCount, abCoords.x, abCoords.y, top);
+
+                overlayText = $"Segment Group: {intersectedSegmentGroupIndex} ABT: {(abCoords, top)}\n"
+                              + $" * Segment sub index {segmentSubIndex}\n"
+                              + $" * Segment index {ConvertToSegmentIndex(intersectedSegmentGroupIndex, SubdivisionCount, abCoords.x, abCoords.y, top)}\n"
+                              + $" * ABT (check): {ConvertToAbtCoords(SubdivisionCount, segmentSubIndex)}";
             } else {
                 Debug.Log($"?! Not intersected !?");
             }
@@ -340,7 +343,9 @@ public class Sphere : MonoBehaviour {
     // 세그먼트 그룹 인덱스, n(분할 횟수), AB 좌표, top여부 네 개를 조합 해 전역 세그먼트 인덱스를 계산하여 반환한다.
     static int ConvertToSegmentIndex(int segmentGroupIndex, int n, int a, int b, bool top) {
         var segmentSubIndex = ConvertToSegmentSubIndex(n, a, b, top);
-        return (segmentGroupIndex << 27) | segmentSubIndex;
+        // 32비트 중 MSB 1비트는 부호 비트로 남겨두고, 세그먼트 그룹 인덱스는 총 0~19 범위이므로 5비트가 필요하다.
+        // 즉 32비트에서 1비트+5비트를 제외한 비트를 segment sub index 공간으로 쓸 수 있다.
+        return (segmentGroupIndex << 26) | segmentSubIndex;
     }
 
     // 세 꼭지점(ip0, ip1, ip2)으로 정의되는 삼각형 내의 특정 지점(intersect)를 AB 좌표, top여부로 변환하여 반환한다.
