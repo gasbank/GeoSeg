@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Unity.Mathematics;
 using UnityEditor;
@@ -465,12 +466,16 @@ public class Sphere : MonoBehaviour {
         return (offsetValue - (Mathf.Floor(offsetValue / width) * width)) + start;
         // + start to reset back to start of original range
     }
-    
+
     // 세그먼트 그룹 내에서 완전히 모든 이웃 세그먼트가 찾아지는 경우에 대해
     // 이웃 세그먼트 서브 인덱스를 모두 반환한다.
-    public static int[] GetNeighborsForSegmentSubIndex(int n, int segmentSubIndex) {
+    public static int[] GetNeighborsOfSegmentSubIndex(int n, int segmentSubIndex) {
         if (n < 4) {
             throw new ArgumentOutOfRangeException(nameof(n));
+        }
+
+        if (segmentSubIndex < 0 || segmentSubIndex >= n * n) {
+            throw new ArgumentOutOfRangeException(nameof(segmentSubIndex));
         }
 
         var (ab, t) = ConvertSubSegIndexToAbt(n, segmentSubIndex);
@@ -481,36 +486,237 @@ public class Sphere : MonoBehaviour {
             ret.Add(ConvertToSegmentSubIndex(n, ab.x - 1, ab.y - 1, true));
             ret.Add(ConvertToSegmentSubIndex(n, ab.x, ab.y - 1, false));
         }
-        
+
         ret.Add(ConvertToSegmentSubIndex(n, ab.x, ab.y - 1, true));
-        
+
         ret.Add(ConvertToSegmentSubIndex(n, ab.x + 1, ab.y - 1, false));
         ret.Add(ConvertToSegmentSubIndex(n, ab.x + 1, ab.y - 1, true));
 
         if (t == false) {
             ret.Add(ConvertToSegmentSubIndex(n, ab.x - 1, ab.y, false));
         }
-        
+
         ret.Add(ConvertToSegmentSubIndex(n, ab.x - 1, ab.y, true));
-        
+
         ret.Add(ConvertToSegmentSubIndex(n, ab.x, ab.y, t == false));
-        
+
         ret.Add(ConvertToSegmentSubIndex(n, ab.x + 1, ab.y, false));
         if (t) {
             ret.Add(ConvertToSegmentSubIndex(n, ab.x + 1, ab.y, true));
         }
-        
+
         ret.Add(ConvertToSegmentSubIndex(n, ab.x - 1, ab.y + 1, false));
         ret.Add(ConvertToSegmentSubIndex(n, ab.x - 1, ab.y + 1, true));
-        
+
         ret.Add(ConvertToSegmentSubIndex(n, ab.x, ab.y + 1, false));
         if (t) {
             ret.Add(ConvertToSegmentSubIndex(n, ab.x, ab.y + 1, true));
             ret.Add(ConvertToSegmentSubIndex(n, ab.x + 1, ab.y + 1, false));
         }
-        
+
         return ret.ToArray();
-    } 
+    }
+
+    // 세그먼트 그룹 내에서 완전히 모든 이웃 세그먼트가 찾아지자 않고,
+    // 세그먼트 그룹 경계를 벗어나는 이웃이 포함되는 경우에 
+    // 이웃 세그먼트 인덱스를 모두 반환한다.
+    // 여러 세그먼트 그룹에 걸쳐야하므로, 세그먼트 서브 인덱스로 조회할 수는 없다.
+    public static int[] GetNeighborsOfSegmentIndex(int n, int segmentIndex) {
+        return new int[] { };
+    }
+
+    [SuppressMessage("ReSharper", "InconsistentNaming")]
+    public enum SegmentGroupNeighbor {
+        Inside,
+        O,
+        A,
+        B,
+        OA,
+        OB,
+        AO,
+        AB,
+        BO,
+        BA,
+        Outside,
+    }
+
+    public static (Vector2Int, bool) ConvertCoordinateToO(int n, Vector2Int ab, bool t) {
+        return (new(n - 1 - ab.x, n - 1 - ab.y), t == false);
+    }
+
+    public static (Vector2Int, bool) ConvertCoordinateToA(int n, Vector2Int ab, bool t) {
+        return (new(-ab.x - 1, ab.x + ab.y + (t ? 1 : 0)), t == false);
+    }
+
+    public static (Vector2Int, bool) ConvertCoordinateToB(int n, Vector2Int ab, bool t) {
+        return (new(ab.x + ab.y + (t ? 1 : 0), -ab.y - 1), t == false);
+    }
+
+    public enum ParallelogramGroup {
+        Bottom,
+        Top,
+        Outside,
+    }
+
+    // ABT 좌표계가 가리키는 위치가 평행사변형의 상단인지 하단인지 판단하여 반환한다.
+    // 상단이면 true, 하단이면 false를 반환하며, 범위를 벗어나는 경우에는 예외를 던진다.
+    public static ParallelogramGroup CheckBottomOrTopFromParallelogram(int n, Vector2Int ab, bool t) {
+        if (n < 1) {
+            throw new ArgumentOutOfRangeException(nameof(n));
+        }
+
+        if (ab.x < 0 || ab.x >= n || ab.y < 0 || ab.y >= n) {
+            return ParallelogramGroup.Outside;
+        }
+
+        if (ab.x + ab.y < n - 1) {
+            return ParallelogramGroup.Bottom;
+        }
+
+        return ab.x + ab.y != n - 1 || t ? ParallelogramGroup.Top : ParallelogramGroup.Bottom;
+    }
+
+    // ABT 좌표가 어떤 SegmentGroupNeighbor에 속하는지를 체크해서 반환한다. 
+    public static SegmentGroupNeighbor CheckSegmentGroupNeighbor(int n, Vector2Int ab, bool t) {
+        switch (CheckBottomOrTopFromParallelogram(n, ab, t)) {
+            case ParallelogramGroup.Bottom:
+                return SegmentGroupNeighbor.Inside;
+            case ParallelogramGroup.Top:
+                return SegmentGroupNeighbor.O;
+            case ParallelogramGroup.Outside:
+                switch (CheckBottomOrTopFromParallelogram(n, new(ab.x - n, ab.y), t)) {
+                    case ParallelogramGroup.Bottom:
+                        return SegmentGroupNeighbor.OA;
+                    case ParallelogramGroup.Top:
+                        return SegmentGroupNeighbor.Outside;
+                    case ParallelogramGroup.Outside:
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+
+                switch (CheckBottomOrTopFromParallelogram(n, new(ab.x + n, ab.y), t)) {
+                    case ParallelogramGroup.Bottom:
+                        return SegmentGroupNeighbor.AB;
+                    case ParallelogramGroup.Top:
+                        return SegmentGroupNeighbor.A;
+                    case ParallelogramGroup.Outside:
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+
+                switch (CheckBottomOrTopFromParallelogram(n, new(ab.x, ab.y - n), t)) {
+                    case ParallelogramGroup.Bottom:
+                        return SegmentGroupNeighbor.OB;
+                    case ParallelogramGroup.Top:
+                        return SegmentGroupNeighbor.Outside;
+                    case ParallelogramGroup.Outside:
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+
+                switch (CheckBottomOrTopFromParallelogram(n, new(ab.x, ab.y + n), t)) {
+                    case ParallelogramGroup.Bottom:
+                        return SegmentGroupNeighbor.BA;
+                    case ParallelogramGroup.Top:
+                        return SegmentGroupNeighbor.B;
+                    case ParallelogramGroup.Outside:
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+
+                switch (CheckBottomOrTopFromParallelogram(n, new(ab.x + n, ab.y - n), t)) {
+                    case ParallelogramGroup.Bottom:
+                        return SegmentGroupNeighbor.AO;
+                    case ParallelogramGroup.Top:
+                        return SegmentGroupNeighbor.Outside;
+                    case ParallelogramGroup.Outside:
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+
+                switch (CheckBottomOrTopFromParallelogram(n, new(ab.x - n, ab.y + n), t)) {
+                    case ParallelogramGroup.Bottom:
+                        return SegmentGroupNeighbor.BO;
+                    case ParallelogramGroup.Top:
+                        return SegmentGroupNeighbor.Outside;
+                    case ParallelogramGroup.Outside:
+                        return SegmentGroupNeighbor.Outside;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+    }
+
+    // 하나의 세그먼트 그룹을 벗어나 인접한 세그먼트 그룹 내 세그먼트를 가리키는
+    // ABT 좌표를 인접한 세그먼트 그룹과 해당 세그먼트 그룹 내의 유효한 ABT 좌표로 변환하여 반환한다.
+    public static (SegmentGroupNeighbor, Vector2Int, bool) ConvertAbtToNeighborAndAbt(int n, Vector2Int ab, bool t) {
+        if (n < 1) {
+            throw new ArgumentOutOfRangeException(nameof(n));
+        }
+
+        switch (CheckSegmentGroupNeighbor(n, ab, t)) {
+            case SegmentGroupNeighbor.Inside:
+                return (SegmentGroupNeighbor.Inside, ab, t);
+            case SegmentGroupNeighbor.O: {
+                var (abO, tO) = ConvertCoordinateToO(n, ab, t);
+                return (SegmentGroupNeighbor.O, abO, tO);
+            }
+            case SegmentGroupNeighbor.A: {
+                var (abA, tA) = ConvertCoordinateToA(n, ab, t);
+                return (SegmentGroupNeighbor.A, abA, tA);
+            }
+            case SegmentGroupNeighbor.B: {
+                var (abB, tB) = ConvertCoordinateToB(n, ab, t);
+                return (SegmentGroupNeighbor.B, abB, tB);
+            }
+            case SegmentGroupNeighbor.OA:
+            case SegmentGroupNeighbor.OB: {
+                var (abO, tO) = ConvertCoordinateToO(n, ab, t);
+                var (neighbor, abOx, tOx) = ConvertAbtToNeighborAndAbt(n, abO, tO);
+                // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
+                return neighbor switch {
+                    SegmentGroupNeighbor.A => (SegmentGroupNeighbor.OA, abOx, tOx),
+                    SegmentGroupNeighbor.B => (SegmentGroupNeighbor.OB, abOx, tOx),
+                    _ => throw new("Logic Error"),
+                };
+            }
+            case SegmentGroupNeighbor.AO:
+            case SegmentGroupNeighbor.AB: {
+                var (abA, tA) = ConvertCoordinateToA(n, ab, t);
+                var (neighbor, abAx, tAx) = ConvertAbtToNeighborAndAbt(n, abA, tA);
+                // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
+                return neighbor switch {
+                    SegmentGroupNeighbor.O => (SegmentGroupNeighbor.AO, abAx, tAx),
+                    SegmentGroupNeighbor.B => (SegmentGroupNeighbor.AB, abAx, tAx),
+                    _ => throw new("Logic Error"),
+                };
+            }
+            case SegmentGroupNeighbor.BO:
+            case SegmentGroupNeighbor.BA: {
+                var (abB, tB) = ConvertCoordinateToB(n, ab, t);
+                var (neighbor, abBx, tBx) = ConvertAbtToNeighborAndAbt(n, abB, tB);
+                // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
+                return neighbor switch {
+                    SegmentGroupNeighbor.O => (SegmentGroupNeighbor.BO, abBx, tBx),
+                    SegmentGroupNeighbor.A => (SegmentGroupNeighbor.BA, abBx, tBx),
+                    _ => throw new("Logic Error"),
+                };
+            }
+            case SegmentGroupNeighbor.Outside:
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+
+        throw new();
+    }
 #endif
 
     static Mesh CreateSubdividedTri(IReadOnlyList<Vector3> vList, int n) {
