@@ -163,8 +163,8 @@ public class Sphere : MonoBehaviour {
         new(-Hh, +Wh, 0),
     };
 
-    const int SubdivisionCount = 5; //8192;
-    const int RenderingSubdivisionCountLimit = 100;
+    const int SubdivisionCount = 128;//8192;
+    const int RenderingSubdivisionCountLimit = 128;
 
     void Start() {
         var mesh = new Mesh { vertices = vertices };
