@@ -524,6 +524,33 @@ public class Sphere : MonoBehaviour {
     public static int[] GetNeighborsOfSegmentIndex(int n, int segmentIndex) {
         return new int[] { };
     }
+    
+    public static (SegmentGroupNeighbor, int)[] GetNeighborsOfSubSegmentIndex(int n, int segmentSubIndex) {
+        var (ab, t) = ConvertSubSegIndexToAbt(n, segmentSubIndex);
+        if (t) {
+            return new [] {
+                // 하단 행
+                ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x, ab.y - 1), true),
+                ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x + 1, ab.y - 1), false),
+                ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x + 1, ab.y - 1), true),
+                // 지금 행
+                ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x - 1, ab.y), true),
+                ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x, ab.y), false),
+                ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x + 1, ab.y), false),
+                ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x + 1, ab.y), true),
+                // 상단 행
+                ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x - 1, ab.y + 1), false),
+                ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x - 1, ab.y + 1), true),
+                ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x, ab.y + 1), false),
+                ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x, ab.y + 1), true),
+                ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x + 1, ab.y + 1), false),
+            };
+        } else {
+            return new (SegmentGroupNeighbor, int)[] { };    
+        }
+        
+        
+    }
 
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     public enum SegmentGroupNeighbor {
@@ -716,6 +743,11 @@ public class Sphere : MonoBehaviour {
         }
 
         throw new();
+    }
+
+    public static (SegmentGroupNeighbor, int) ConvertAbtToNeighborAndLocalSegmentIndex(int n, Vector2Int ab, bool t) {
+        var (neighbor, abNeighbor, tNeighbor) = ConvertAbtToNeighborAndAbt(n, ab, t);
+        return (neighbor, ConvertToSegmentSubIndex(n, abNeighbor.x, abNeighbor.y, tNeighbor));
     }
 #endif
 

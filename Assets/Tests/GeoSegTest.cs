@@ -165,7 +165,7 @@ public class GeoSegTest {
             Sphere.ConvertAbtToNeighborAndAbt(2, new(1, -1), true));
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.B, new Vector2Int(0, 1), false),
             Sphere.ConvertAbtToNeighborAndAbt(2, new(1, -2), true));
-        
+
         // OA
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.OA, new Vector2Int(0, 0), false),
             Sphere.ConvertAbtToNeighborAndAbt(2, new(2, 1), false));
@@ -175,7 +175,7 @@ public class GeoSegTest {
             Sphere.ConvertAbtToNeighborAndAbt(2, new(3, 0), false));
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.OA, new Vector2Int(0, 1), false),
             Sphere.ConvertAbtToNeighborAndAbt(2, new(2, 0), false));
-        
+
         // OB
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.OB, new Vector2Int(0, 0), false),
             Sphere.ConvertAbtToNeighborAndAbt(2, new(1, 2), false));
@@ -185,7 +185,7 @@ public class GeoSegTest {
             Sphere.ConvertAbtToNeighborAndAbt(2, new(0, 2), false));
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.OB, new Vector2Int(0, 1), false),
             Sphere.ConvertAbtToNeighborAndAbt(2, new(0, 3), false));
-        
+
         // AO
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.AO, new Vector2Int(0, 0), false),
             Sphere.ConvertAbtToNeighborAndAbt(2, new(-2, 3), false));
@@ -195,7 +195,7 @@ public class GeoSegTest {
             Sphere.ConvertAbtToNeighborAndAbt(2, new(-1, 2), false));
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.AO, new Vector2Int(0, 1), false),
             Sphere.ConvertAbtToNeighborAndAbt(2, new(-2, 2), false));
-        
+
         // AB
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.AB, new Vector2Int(0, 0), false),
             Sphere.ConvertAbtToNeighborAndAbt(2, new(-1, 0), false));
@@ -205,7 +205,7 @@ public class GeoSegTest {
             Sphere.ConvertAbtToNeighborAndAbt(2, new(-2, 1), false));
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.AB, new Vector2Int(0, 1), false),
             Sphere.ConvertAbtToNeighborAndAbt(2, new(-2, 0), false));
-        
+
         // BO
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.BO, new Vector2Int(0, 0), false),
             Sphere.ConvertAbtToNeighborAndAbt(2, new(3, -2), false));
@@ -215,7 +215,7 @@ public class GeoSegTest {
             Sphere.ConvertAbtToNeighborAndAbt(2, new(2, -2), false));
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.BO, new Vector2Int(0, 1), false),
             Sphere.ConvertAbtToNeighborAndAbt(2, new(2, -1), false));
-        
+
         // BA
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.BA, new Vector2Int(0, 0), false),
             Sphere.ConvertAbtToNeighborAndAbt(2, new(0, -1), false));
@@ -257,6 +257,24 @@ public class GeoSegTest {
         Assert.AreEqual(Sphere.ParallelogramGroup.Top, Sphere.CheckBottomOrTopFromParallelogram(2, new(0, 1), true));
         Assert.AreEqual(Sphere.ParallelogramGroup.Top, Sphere.CheckBottomOrTopFromParallelogram(2, new(1, 1), false));
         Assert.AreEqual(Sphere.ParallelogramGroup.Top, Sphere.CheckBottomOrTopFromParallelogram(2, new(1, 1), true));
+    }
+
+    [Test]
+    public void TestGetNeighborsOfSubSegmentIndex() {
+        Assert.AreEqual(new (Sphere.SegmentGroupNeighbor, int)[] {
+            (Sphere.SegmentGroupNeighbor.Inside, 16),
+            (Sphere.SegmentGroupNeighbor.Inside, 17),
+            (Sphere.SegmentGroupNeighbor.Inside, 18),
+            (Sphere.SegmentGroupNeighbor.Inside, 25),
+            (Sphere.SegmentGroupNeighbor.Inside, 26),
+            (Sphere.SegmentGroupNeighbor.Inside, 28),
+            (Sphere.SegmentGroupNeighbor.Inside, 29),
+            (Sphere.SegmentGroupNeighbor.Inside, 33),
+            (Sphere.SegmentGroupNeighbor.Inside, 34),
+            (Sphere.SegmentGroupNeighbor.Inside, 35),
+            (Sphere.SegmentGroupNeighbor.Inside, 36),
+            (Sphere.SegmentGroupNeighbor.Inside, 37),
+        }, Sphere.GetNeighborsOfSubSegmentIndex(7, 27));
     }
 
     [Test]
