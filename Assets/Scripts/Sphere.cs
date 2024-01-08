@@ -13,6 +13,7 @@ public class Sphere : MonoBehaviour {
     public Transform userPos;
     public Transform intersectPos;
     public Transform centerPos;
+    public Transform[] neighborPosList;
     public int intersectedSegmentGroupIndex = -1;
 
     public static string overlayText;
@@ -278,6 +279,20 @@ public class Sphere : MonoBehaviour {
 
                 centerPos.position = CalculateSegmentCenter(SubdivisionCount, segmentIndex);
 
+                var neighborPosListIndex = 0;
+                foreach (var (neighbor, neighborSegSubIndex) in GetNeighborsOfSubSegmentIndex(SubdivisionCount, segmentSubIndex)) {
+                    if (neighbor == SegmentGroupNeighbor.Inside) {
+                        var neighborSegmentIndex = ConvertToSegmentIndex(intersectedSegmentGroupIndex, neighborSegSubIndex);
+                        neighborPosList[neighborPosListIndex].position = CalculateSegmentCenter(SubdivisionCount, neighborSegmentIndex);
+                        neighborPosList[neighborPosListIndex].gameObject.SetActive(true);
+                        neighborPosListIndex++;
+                    }
+                }
+
+                for (var i = neighborPosListIndex; i < neighborPosList.Length; i++) {
+                    neighborPosList[i].gameObject.SetActive(false);
+                }
+
                 var (centerLat, centerLng) = CalculateSegmentCenterLatLng(SubdivisionCount, segmentIndex);
 
                 overlayText = $"Intersection Lat: {lat * Mathf.Rad2Deg}°, Lng: {lng * Mathf.Rad2Deg}°\n"
@@ -417,6 +432,10 @@ public class Sphere : MonoBehaviour {
     static int ConvertToSegmentIndex(int segmentGroupIndex, int n, int a, int b, bool top) {
         var segmentSubIndex = ConvertToSegmentSubIndex(n, a, b, top);
 
+        return ConvertToSegmentIndex(segmentGroupIndex, segmentSubIndex);
+    }
+    static int ConvertToSegmentIndex(int segmentGroupIndex, int segmentSubIndex) {
+
         return (segmentGroupIndex << SegmentSubIndexBitCount) | segmentSubIndex;
     }
 
@@ -545,11 +564,25 @@ public class Sphere : MonoBehaviour {
                 ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x, ab.y + 1), true),
                 ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x + 1, ab.y + 1), false),
             };
-        } else {
-            return new (SegmentGroupNeighbor, int)[] { };    
         }
-        
-        
+
+        return new[] {
+            // 하단 행
+            ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x - 1, ab.y - 1), true),
+            ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x, ab.y - 1), false),
+            ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x, ab.y - 1), true),
+            ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x + 1, ab.y - 1), false),
+            ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x + 1, ab.y - 1), true),
+            // 지금 행
+            ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x - 1, ab.y), false),
+            ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x - 1, ab.y), true),
+            ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x, ab.y), true),
+            ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x + 1, ab.y), false),
+            // 상단 행
+            ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x - 1, ab.y + 1), false),
+            ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x - 1, ab.y + 1), true),
+            ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x, ab.y + 1), false),
+        };
     }
 
     [SuppressMessage("ReSharper", "InconsistentNaming")]
