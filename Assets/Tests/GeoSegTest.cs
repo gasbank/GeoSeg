@@ -295,8 +295,8 @@ public class GeoSegTest {
     [Test]
     public void TestDetermineEdgeNeighborOrigin() {
         // Neighbor O
-        Assert.AreEqual((Sphere.EdgeNeighbor.O, Sphere.EdgeNeighborOrigin.Op, Sphere.AxisOrientation.Clockwise),
-            Sphere.DetermineEdgeNeighborOrigin(new[] {
+        Assert.AreEqual((Sphere.EdgeNeighbor.O, Sphere.EdgeNeighborOrigin.Op, Sphere.AxisOrientation.CW),
+            Sphere.DetermineCoordinate(new[] {
                 0,
                 1,
                 2,
@@ -305,8 +305,8 @@ public class GeoSegTest {
                 1,
                 2,
             }));
-        Assert.AreEqual((Sphere.EdgeNeighbor.O, Sphere.EdgeNeighborOrigin.Op, Sphere.AxisOrientation.CounterClockwise),
-            Sphere.DetermineEdgeNeighborOrigin(new[] {
+        Assert.AreEqual((Sphere.EdgeNeighbor.O, Sphere.EdgeNeighborOrigin.Op, Sphere.AxisOrientation.CCW),
+            Sphere.DetermineCoordinate(new[] {
                 0,
                 1,
                 2,
@@ -315,8 +315,8 @@ public class GeoSegTest {
                 2,
                 1,
             }));
-        Assert.AreEqual((Sphere.EdgeNeighbor.O, Sphere.EdgeNeighborOrigin.A, Sphere.AxisOrientation.Clockwise),
-            Sphere.DetermineEdgeNeighborOrigin(new[] {
+        Assert.AreEqual((Sphere.EdgeNeighbor.O, Sphere.EdgeNeighborOrigin.A, Sphere.AxisOrientation.CW),
+            Sphere.DetermineCoordinate(new[] {
                 0,
                 1,
                 2,
@@ -325,8 +325,8 @@ public class GeoSegTest {
                 2,
                 30,
             }));
-        Assert.AreEqual((Sphere.EdgeNeighbor.O, Sphere.EdgeNeighborOrigin.A, Sphere.AxisOrientation.CounterClockwise),
-            Sphere.DetermineEdgeNeighborOrigin(new[] {
+        Assert.AreEqual((Sphere.EdgeNeighbor.O, Sphere.EdgeNeighborOrigin.A, Sphere.AxisOrientation.CCW),
+            Sphere.DetermineCoordinate(new[] {
                 0,
                 1,
                 2,
@@ -335,8 +335,8 @@ public class GeoSegTest {
                 30,
                 2,
             }));
-        Assert.AreEqual((Sphere.EdgeNeighbor.O, Sphere.EdgeNeighborOrigin.B, Sphere.AxisOrientation.CounterClockwise),
-            Sphere.DetermineEdgeNeighborOrigin(new[] {
+        Assert.AreEqual((Sphere.EdgeNeighbor.O, Sphere.EdgeNeighborOrigin.B, Sphere.AxisOrientation.CCW),
+            Sphere.DetermineCoordinate(new[] {
                 0,
                 1,
                 2,
@@ -345,8 +345,8 @@ public class GeoSegTest {
                 1,
                 30,
             }));
-        Assert.AreEqual((Sphere.EdgeNeighbor.O, Sphere.EdgeNeighborOrigin.B, Sphere.AxisOrientation.Clockwise),
-            Sphere.DetermineEdgeNeighborOrigin(new[] {
+        Assert.AreEqual((Sphere.EdgeNeighbor.O, Sphere.EdgeNeighborOrigin.B, Sphere.AxisOrientation.CW),
+            Sphere.DetermineCoordinate(new[] {
                 0,
                 1,
                 2,
@@ -357,8 +357,8 @@ public class GeoSegTest {
             }));
         
         // Neighbor A
-        Assert.AreEqual((Sphere.EdgeNeighbor.A, Sphere.EdgeNeighborOrigin.O, Sphere.AxisOrientation.Clockwise),
-            Sphere.DetermineEdgeNeighborOrigin(new[] {
+        Assert.AreEqual((Sphere.EdgeNeighbor.A, Sphere.EdgeNeighborOrigin.O, Sphere.AxisOrientation.CW),
+            Sphere.DetermineCoordinate(new[] {
                 0,
                 1,
                 2,
@@ -367,8 +367,8 @@ public class GeoSegTest {
                 20,
                 2,
             }));
-        Assert.AreEqual((Sphere.EdgeNeighbor.A, Sphere.EdgeNeighborOrigin.O, Sphere.AxisOrientation.CounterClockwise),
-            Sphere.DetermineEdgeNeighborOrigin(new[] {
+        Assert.AreEqual((Sphere.EdgeNeighbor.A, Sphere.EdgeNeighborOrigin.O, Sphere.AxisOrientation.CCW),
+            Sphere.DetermineCoordinate(new[] {
                 0,
                 1,
                 2,
@@ -377,8 +377,8 @@ public class GeoSegTest {
                 2,
                 20,
             }));
-        Assert.AreEqual((Sphere.EdgeNeighbor.A, Sphere.EdgeNeighborOrigin.Ap, Sphere.AxisOrientation.Clockwise),
-            Sphere.DetermineEdgeNeighborOrigin(new[] {
+        Assert.AreEqual((Sphere.EdgeNeighbor.A, Sphere.EdgeNeighborOrigin.Ap, Sphere.AxisOrientation.CW),
+            Sphere.DetermineCoordinate(new[] {
                 0,
                 1,
                 2,
@@ -387,8 +387,8 @@ public class GeoSegTest {
                 2,
                 0,
             }));
-        Assert.AreEqual((Sphere.EdgeNeighbor.A, Sphere.EdgeNeighborOrigin.Ap, Sphere.AxisOrientation.CounterClockwise),
-            Sphere.DetermineEdgeNeighborOrigin(new[] {
+        Assert.AreEqual((Sphere.EdgeNeighbor.A, Sphere.EdgeNeighborOrigin.Ap, Sphere.AxisOrientation.CCW),
+            Sphere.DetermineCoordinate(new[] {
                 0,
                 1,
                 2,
@@ -397,8 +397,8 @@ public class GeoSegTest {
                 0,
                 2,
             }));
-        Assert.AreEqual((Sphere.EdgeNeighbor.A, Sphere.EdgeNeighborOrigin.B, Sphere.AxisOrientation.CounterClockwise),
-            Sphere.DetermineEdgeNeighborOrigin(new[] {
+        Assert.AreEqual((Sphere.EdgeNeighbor.A, Sphere.EdgeNeighborOrigin.B, Sphere.AxisOrientation.CCW),
+            Sphere.DetermineCoordinate(new[] {
                 0,
                 1,
                 2,
@@ -407,8 +407,8 @@ public class GeoSegTest {
                 20,
                 0,
             }));
-        Assert.AreEqual((Sphere.EdgeNeighbor.A, Sphere.EdgeNeighborOrigin.B, Sphere.AxisOrientation.Clockwise),
-            Sphere.DetermineEdgeNeighborOrigin(new[] {
+        Assert.AreEqual((Sphere.EdgeNeighbor.A, Sphere.EdgeNeighborOrigin.B, Sphere.AxisOrientation.CW),
+            Sphere.DetermineCoordinate(new[] {
                 0,
                 1,
                 2,
@@ -419,8 +419,8 @@ public class GeoSegTest {
             }));
         
         // Neighbor B
-        Assert.AreEqual((Sphere.EdgeNeighbor.B, Sphere.EdgeNeighborOrigin.O, Sphere.AxisOrientation.Clockwise),
-            Sphere.DetermineEdgeNeighborOrigin(new[] {
+        Assert.AreEqual((Sphere.EdgeNeighbor.B, Sphere.EdgeNeighborOrigin.O, Sphere.AxisOrientation.CW),
+            Sphere.DetermineCoordinate(new[] {
                 0,
                 1,
                 2,
@@ -429,8 +429,8 @@ public class GeoSegTest {
                 1,
                 10,
             }));
-        Assert.AreEqual((Sphere.EdgeNeighbor.B, Sphere.EdgeNeighborOrigin.O, Sphere.AxisOrientation.CounterClockwise),
-            Sphere.DetermineEdgeNeighborOrigin(new[] {
+        Assert.AreEqual((Sphere.EdgeNeighbor.B, Sphere.EdgeNeighborOrigin.O, Sphere.AxisOrientation.CCW),
+            Sphere.DetermineCoordinate(new[] {
                 0,
                 1,
                 2,
@@ -439,8 +439,8 @@ public class GeoSegTest {
                 10,
                 1,
             }));
-        Assert.AreEqual((Sphere.EdgeNeighbor.B, Sphere.EdgeNeighborOrigin.A, Sphere.AxisOrientation.Clockwise),
-            Sphere.DetermineEdgeNeighborOrigin(new[] {
+        Assert.AreEqual((Sphere.EdgeNeighbor.B, Sphere.EdgeNeighborOrigin.A, Sphere.AxisOrientation.CW),
+            Sphere.DetermineCoordinate(new[] {
                 0,
                 1,
                 2,
@@ -449,8 +449,8 @@ public class GeoSegTest {
                 10,
                 0,
             }));
-        Assert.AreEqual((Sphere.EdgeNeighbor.B, Sphere.EdgeNeighborOrigin.A, Sphere.AxisOrientation.CounterClockwise),
-            Sphere.DetermineEdgeNeighborOrigin(new[] {
+        Assert.AreEqual((Sphere.EdgeNeighbor.B, Sphere.EdgeNeighborOrigin.A, Sphere.AxisOrientation.CCW),
+            Sphere.DetermineCoordinate(new[] {
                 0,
                 1,
                 2,
@@ -459,8 +459,8 @@ public class GeoSegTest {
                 0,
                 10,
             }));
-        Assert.AreEqual((Sphere.EdgeNeighbor.B, Sphere.EdgeNeighborOrigin.Bp, Sphere.AxisOrientation.CounterClockwise),
-            Sphere.DetermineEdgeNeighborOrigin(new[] {
+        Assert.AreEqual((Sphere.EdgeNeighbor.B, Sphere.EdgeNeighborOrigin.Bp, Sphere.AxisOrientation.CCW),
+            Sphere.DetermineCoordinate(new[] {
                 0,
                 1,
                 2,
@@ -469,8 +469,8 @@ public class GeoSegTest {
                 1,
                 0,
             }));
-        Assert.AreEqual((Sphere.EdgeNeighbor.B, Sphere.EdgeNeighborOrigin.Bp, Sphere.AxisOrientation.Clockwise),
-            Sphere.DetermineEdgeNeighborOrigin(new[] {
+        Assert.AreEqual((Sphere.EdgeNeighbor.B, Sphere.EdgeNeighborOrigin.Bp, Sphere.AxisOrientation.CW),
+            Sphere.DetermineCoordinate(new[] {
                 0,
                 1,
                 2,

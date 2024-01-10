@@ -148,8 +148,6 @@ public class Sphere : MonoBehaviour {
         },
     };
 
-    static readonly (int[], EdgeNeighbor, EdgeNeighborOrigin, AxisOrientation)[] NeighborFaceIndices = BuildFaceNeighbors();
-
     static readonly Vector3[] Vertices = {
         new(0, -Hh, -Wh),
         new(0, +Hh, -Wh),
@@ -164,8 +162,10 @@ public class Sphere : MonoBehaviour {
         new(+Hh, +Wh, 0),
         new(-Hh, +Wh, 0),
     };
+    
+    static readonly (int, EdgeNeighbor, EdgeNeighborOrigin, AxisOrientation)[][] NeighborFaceIndices = BuildFaceNeighbors();
 
-    const int SubdivisionCount = 128; //8192;
+    const int SubdivisionCount = 8; //8192;
     const int RenderingSubdivisionCountLimit = 128;
 
     void Start() {
@@ -205,7 +205,15 @@ public class Sphere : MonoBehaviour {
         }
     }
 
-    public static (EdgeNeighbor, EdgeNeighborOrigin, AxisOrientation) DetermineEdgeNeighborOrigin(int[] face, int[] neighbor) {
+    static AxisOrientation DetermineAxisOrientation(int[] face) {
+        var faceVerts = face.Select(e => Vertices[e]).ToArray();
+        var axis = ((faceVerts[0] + faceVerts[1] + faceVerts[2]) / 3).normalized;
+        return Vector3.SignedAngle(faceVerts[1] - faceVerts[0], faceVerts[2] - faceVerts[0], axis) > 0
+            ? AxisOrientation.CCW
+            : AxisOrientation.CW;
+    }
+
+    public static (EdgeNeighbor, EdgeNeighborOrigin, AxisOrientation) DetermineCoordinate(int[] face, int[] neighbor) {
         if (face.Length != 3) {
             throw new ArgumentOutOfRangeException(nameof(face), face, null);
         }
@@ -217,6 +225,8 @@ public class Sphere : MonoBehaviour {
         if (face.Intersect(neighbor).Count() != 2) {
             throw new("Not neighbor");
         }
+
+        var faceAxisOrientation = DetermineAxisOrientation(face);
 
         var neighborListed = neighbor.ToList();
         var neighborIndexOfFaceVerts = face.Select(e => neighborListed.IndexOf(e)).ToArray();
@@ -230,49 +240,54 @@ public class Sphere : MonoBehaviour {
 
             if (neighborIndexOfFaceVerts[1] == 0) {
                 edgeNeighborOrigin = EdgeNeighborOrigin.A;
-                axisOrientation = neighbor[1] == face[2] ? AxisOrientation.Clockwise : AxisOrientation.CounterClockwise;
+                axisOrientation = neighbor[1] == face[2] ? AxisOrientation.CW : AxisOrientation.CCW;
             } else if (neighborIndexOfFaceVerts[2] == 0) {
                 edgeNeighborOrigin = EdgeNeighborOrigin.B;
-                axisOrientation = neighbor[1] == face[1] ? AxisOrientation.CounterClockwise : AxisOrientation.Clockwise;
+                axisOrientation = neighbor[1] == face[1] ? AxisOrientation.CCW : AxisOrientation.CW;
             } else {
                 edgeNeighborOrigin = EdgeNeighborOrigin.Op;
-                axisOrientation = neighbor[1] == face[1] ? AxisOrientation.Clockwise : AxisOrientation.CounterClockwise;
+                axisOrientation = neighbor[1] == face[1] ? AxisOrientation.CW : AxisOrientation.CCW;
             }
         } else if (neighborIndexOfFaceVerts[1] == -1) {
             edgeNeighbor = EdgeNeighbor.A;
 
             if (neighborIndexOfFaceVerts[0] == 0) {
                 edgeNeighborOrigin = EdgeNeighborOrigin.O;
-                axisOrientation = neighbor[1] == face[2] ? AxisOrientation.CounterClockwise : AxisOrientation.Clockwise;
+                axisOrientation = neighbor[1] == face[2] ? AxisOrientation.CCW : AxisOrientation.CW;
             } else if (neighborIndexOfFaceVerts[2] == 0) {
                 edgeNeighborOrigin = EdgeNeighborOrigin.B;
-                axisOrientation = neighbor[1] == face[0] ? AxisOrientation.Clockwise : AxisOrientation.CounterClockwise;
+                axisOrientation = neighbor[1] == face[0] ? AxisOrientation.CW : AxisOrientation.CCW;
             } else {
                 edgeNeighborOrigin = EdgeNeighborOrigin.Ap;
-                axisOrientation = neighbor[1] == face[0] ? AxisOrientation.CounterClockwise : AxisOrientation.Clockwise;
+                axisOrientation = neighbor[1] == face[0] ? AxisOrientation.CCW : AxisOrientation.CW;
             }
         } else if (neighborIndexOfFaceVerts[2] == -1) {
             edgeNeighbor = EdgeNeighbor.B;
 
             if (neighborIndexOfFaceVerts[0] == 0) {
                 edgeNeighborOrigin = EdgeNeighborOrigin.O;
-                axisOrientation = neighbor[1] == face[1] ? AxisOrientation.Clockwise : AxisOrientation.CounterClockwise;
+                axisOrientation = neighbor[1] == face[1] ? AxisOrientation.CW : AxisOrientation.CCW;
             } else if (neighborIndexOfFaceVerts[1] == 0) {
                 edgeNeighborOrigin = EdgeNeighborOrigin.A;
-                axisOrientation = neighbor[1] == face[0] ? AxisOrientation.CounterClockwise : AxisOrientation.Clockwise;
+                axisOrientation = neighbor[1] == face[0] ? AxisOrientation.CCW : AxisOrientation.CW;
             } else {
                 edgeNeighborOrigin = EdgeNeighborOrigin.Bp;
-                axisOrientation = neighbor[1] == face[0] ? AxisOrientation.Clockwise : AxisOrientation.CounterClockwise;
+                axisOrientation = neighbor[1] == face[0] ? AxisOrientation.CW : AxisOrientation.CCW;
             }
         } else {
             throw new("Logic Error");
         }
 
-        return (edgeNeighbor, edgeNeighborOrigin, axisOrientation);
+        return (edgeNeighbor, edgeNeighborOrigin,
+            faceAxisOrientation == AxisOrientation.CW ? axisOrientation : InvertAxisOrientation(axisOrientation));
     }
 
-    static (int[], EdgeNeighbor, EdgeNeighborOrigin, AxisOrientation)[] BuildFaceNeighbors() {
-        List<(int[], EdgeNeighbor, EdgeNeighborOrigin, AxisOrientation)> neighbors = new();
+    static AxisOrientation InvertAxisOrientation(AxisOrientation axisOrientation) {
+        return axisOrientation == AxisOrientation.CW ? AxisOrientation.CCW : AxisOrientation.CW;
+    }
+
+    static (int, EdgeNeighbor, EdgeNeighborOrigin, AxisOrientation)[][] BuildFaceNeighbors() {
+        List<(int, EdgeNeighbor, EdgeNeighborOrigin, AxisOrientation)[]> neighbors = new();
         for (var i = 0; i < VertIndexPerFaces.Length; i++) {
             var neighborO = -1;
             var neighborA = -1;
@@ -289,7 +304,6 @@ public class Sphere : MonoBehaviour {
                 if (ej.Contains(ei[1]) && ej.Contains(ei[2])) {
                     // 원점에서 가장 멀게 맞닿은 면은 N_O다.
                     neighborO = j;
-                    //ej[0] == ei[0]
                 } else if (ej.Contains(ei[0]) && ej.Contains(ei[2])) {
                     // B축에 맞닿은 면은 N_A다.
                     neighborA = j;
@@ -303,12 +317,14 @@ public class Sphere : MonoBehaviour {
                 throw new("Logic Error");
             }
 
-            // 면의 이웃 인덱스는 N_O, N_A, N_B 순으로 넣는다.
-            neighbors.Add((new[] {
-                neighborO,
-                neighborA,
-                neighborB,
-            }, EdgeNeighbor.O, EdgeNeighborOrigin.O, AxisOrientation.Clockwise));
+            var (edgeNeighborO, edgeNeighborOriginO, axisOrientationO) = DetermineCoordinate(ei, VertIndexPerFaces[neighborO]);
+            var (edgeNeighborA, edgeNeighborOriginA, axisOrientationA) = DetermineCoordinate(ei, VertIndexPerFaces[neighborA]);
+            var (edgeNeighborB, edgeNeighborOriginB, axisOrientationB) = DetermineCoordinate(ei, VertIndexPerFaces[neighborB]);
+            neighbors.Add(new[] {
+                (neighborO, edgeNeighborO, edgeNeighborOriginO, axisOrientationO),
+                (neighborA, edgeNeighborA, edgeNeighborOriginA, axisOrientationA),
+                (neighborB, edgeNeighborB, edgeNeighborOriginB, axisOrientationB),
+            });
         }
 
         return neighbors.ToArray();
@@ -398,7 +414,7 @@ public class Sphere : MonoBehaviour {
                 var (centerLat, centerLng) = CalculateSegmentCenterLatLng(SubdivisionCount, segmentIndex);
 
                 // Neighbor (depth=1)
-                var (neighborFaces, _, _, _) = NeighborFaceIndices[intersectedSegmentGroupIndex];
+                var neighborFaces = NeighborFaceIndices[intersectedSegmentGroupIndex];
 
                 OverlayText = $"Intersection Lat: {lat * Mathf.Rad2Deg}°, Lng: {lng * Mathf.Rad2Deg}°\n"
                               + $"Segment Group: {intersectedSegmentGroupIndex} ABT: {(abCoords, top)}\n"
@@ -722,21 +738,22 @@ public class Sphere : MonoBehaviour {
         Bp,
     }
 
+    [SuppressMessage("ReSharper", "InconsistentNaming")]
     public enum AxisOrientation {
-        CounterClockwise,
-        Clockwise,
+        CCW,
+        CW,
     }
 
     static (Vector2Int, bool) ConvertCoordinateToO(int n, Vector2Int ab, bool t) {
-        return ConvertCoordinate(EdgeNeighbor.O, EdgeNeighborOrigin.Op, AxisOrientation.CounterClockwise, n, ab, t);
+        return ConvertCoordinate(EdgeNeighbor.O, EdgeNeighborOrigin.Op, AxisOrientation.CCW, n, ab, t);
     }
 
     static (Vector2Int, bool) ConvertCoordinateToA(int n, Vector2Int ab, bool t) {
-        return ConvertCoordinate(EdgeNeighbor.A, EdgeNeighborOrigin.O, AxisOrientation.Clockwise, n, ab, t);
+        return ConvertCoordinate(EdgeNeighbor.A, EdgeNeighborOrigin.O, AxisOrientation.CW, n, ab, t);
     }
 
     static (Vector2Int, bool) ConvertCoordinateToB(int n, Vector2Int ab, bool t) {
-        return ConvertCoordinate(EdgeNeighbor.B, EdgeNeighborOrigin.O, AxisOrientation.Clockwise, n, ab, t);
+        return ConvertCoordinate(EdgeNeighbor.B, EdgeNeighborOrigin.O, AxisOrientation.CW, n, ab, t);
     }
 
     static Vector2Int Swap(int a, int b, bool swap) {
@@ -748,7 +765,7 @@ public class Sphere : MonoBehaviour {
         var (a, b) = (ab.x, ab.y);
         var tv = t ? 1 : 0;
         var tInvert = t == false;
-        var swap = axisOrientation == AxisOrientation.Clockwise;
+        var swap = axisOrientation == AxisOrientation.CW;
 
         switch (edgeNeighbor) {
             case EdgeNeighbor.O:
