@@ -163,6 +163,8 @@ public class Sphere : MonoBehaviour {
         new(-Hh, +Wh, 0),
     };
 
+    static readonly AxisOrientation[] FaceAxisOrientationList = BuildFaceAxisOrientationList();
+
     static readonly (int, EdgeNeighbor, EdgeNeighborOrigin, AxisOrientation)[][] NeighborFaceInfoList = BuildNeighborFaceInfoList();
 
     const int SubdivisionCount = 8; //8192;
@@ -285,6 +287,10 @@ public class Sphere : MonoBehaviour {
         return axisOrientation == AxisOrientation.CW ? AxisOrientation.CCW : AxisOrientation.CW;
     }
 
+    static AxisOrientation[] BuildFaceAxisOrientationList() {
+        return VertIndexPerFaces.Select(DetermineAxisOrientation).ToArray();
+    }
+
     static (int, EdgeNeighbor, EdgeNeighborOrigin, AxisOrientation)[][] BuildNeighborFaceInfoList() {
         List<(int, EdgeNeighbor, EdgeNeighborOrigin, AxisOrientation)[]> neighbors = new();
         for (var i = 0; i < VertIndexPerFaces.Length; i++) {
@@ -317,7 +323,7 @@ public class Sphere : MonoBehaviour {
             }
 
 
-            var faceAxisOrientation = DetermineAxisOrientation(ei);
+            var faceAxisOrientation = FaceAxisOrientationList[i];
 
             var (edgeNeighborO, edgeNeighborOriginO, axisOrientationO) =
                 DetermineCoordinate(ei, faceAxisOrientation, VertIndexPerFaces[neighborO]);
@@ -325,7 +331,7 @@ public class Sphere : MonoBehaviour {
                 DetermineCoordinate(ei, faceAxisOrientation, VertIndexPerFaces[neighborA]);
             var (edgeNeighborB, edgeNeighborOriginB, axisOrientationB) =
                 DetermineCoordinate(ei, faceAxisOrientation, VertIndexPerFaces[neighborB]);
-            
+
             neighbors.Add(new[] {
                 (neighborO, edgeNeighborO, edgeNeighborOriginO, axisOrientationO),
                 (neighborA, edgeNeighborA, edgeNeighborOriginA, axisOrientationA),
@@ -403,16 +409,22 @@ public class Sphere : MonoBehaviour {
                 centerPos.position = CalculateSegmentCenter(SubdivisionCount, segmentIndex);
 
                 var neighborPosListIndex = 0;
-                foreach (var (neighbor, neighborLocalSegIndex) in GetNeighborsOfLocalSegmentIndex(SubdivisionCount, localSegmentIndex)) {
-                    if (neighbor == SegmentGroupNeighbor.Inside) {
-                        var neighborSegmentIndex = ConvertToSegmentIndex(intersectedSegmentGroupIndex, neighborLocalSegIndex);
-                        neighborPosList[neighborPosListIndex].position =
-                            CalculateSegmentCenter(SubdivisionCount, neighborSegmentIndex);
-                        neighborPosList[neighborPosListIndex].gameObject.SetActive(true);
-                        neighborPosListIndex++;
-                    } else if (neighbor == SegmentGroupNeighbor.O) {
-
-                    }
+                // foreach (var (neighbor, neighborLocalSegIndex) in GetNeighborsOfLocalSegmentIndex(false, SubdivisionCount,
+                //              localSegmentIndex)) {
+                //     if (neighbor == SegmentGroupNeighbor.Inside) {
+                //         var neighborSegmentIndex = ConvertToSegmentIndex(intersectedSegmentGroupIndex, neighborLocalSegIndex);
+                //         neighborPosList[neighborPosListIndex].position =
+                //             CalculateSegmentCenter(SubdivisionCount, neighborSegmentIndex);
+                //         neighborPosList[neighborPosListIndex].gameObject.SetActive(true);
+                //         neighborPosListIndex++;
+                //     } else if (neighbor == SegmentGroupNeighbor.O) {
+                //
+                //     }
+                // }
+                foreach (var neighborSegIndex in GetNeighborsOfSegmentIndex(SubdivisionCount, segmentIndex)) {
+                    neighborPosList[neighborPosListIndex].position = CalculateSegmentCenter(SubdivisionCount, neighborSegIndex);
+                    neighborPosList[neighborPosListIndex].gameObject.SetActive(true);
+                    neighborPosListIndex++;
                 }
 
                 for (var i = neighborPosListIndex; i < neighborPosList.Length; i++) {
@@ -515,7 +527,7 @@ public class Sphere : MonoBehaviour {
     // 즉 32비트에서 1비트+5비트를 제외한 비트를 local segment index 공간으로 쓸 수 있다.
     const int LocalSegmentIndexBitCount = 32 - 1 - 5;
 
-    static (int, int) SplitSegIndexToSegGroupAndLocalSegmentIndex(int n, int segmentIndex) {
+    static (int, int) SplitSegIndexToSegGroupAndLocalSegmentIndex(int segmentIndex) {
         var segmentGroupIndex = segmentIndex >> LocalSegmentIndexBitCount;
         var localSegIndex = segmentIndex & ((1 << LocalSegmentIndexBitCount) - 1);
         return (segmentGroupIndex, localSegIndex);
@@ -523,7 +535,7 @@ public class Sphere : MonoBehaviour {
 
     // Seg Index를 Seg Group & ABT로 변환해서 반환
     static Tuple<int, Vector2Int, bool> SplitSegIndexToSegGroupAndAbt(int n, int segmentIndex) {
-        var (segmentGroupIndex, localSegIndex) = SplitSegIndexToSegGroupAndLocalSegmentIndex(n, segmentIndex);
+        var (segmentGroupIndex, localSegIndex) = SplitSegIndexToSegGroupAndLocalSegmentIndex(segmentIndex);
         var (abCoords, top) = SplitLocalSegmentIndexToAbt(n, localSegIndex);
         return Tuple.Create(segmentGroupIndex, abCoords, top);
     }
@@ -677,25 +689,30 @@ public class Sphere : MonoBehaviour {
     // 세그먼트 그룹 경계를 벗어나는 이웃이 포함되는 경우에 
     // 이웃 세그먼트 인덱스를 모두 반환한다.
     // 여러 세그먼트 그룹에 걸쳐야하므로, 세그먼트 서브 인덱스로 조회할 수는 없다.
-    public static int[] GetNeighborsOfSegmentIndex(int n, int segmentIndex) {
-        var (segGroupIndex, localSegmentIndex) = SplitSegIndexToSegGroupAndLocalSegmentIndex(n, segmentIndex);
-        
+    static int[] GetNeighborsOfSegmentIndex(int n, int segmentIndex) {
+        var (segGroupIndex, localSegmentIndex) = SplitSegIndexToSegGroupAndLocalSegmentIndex(segmentIndex);
+
+        var baseAxisOrientation = FaceAxisOrientationList[segGroupIndex];
+
         List<int> neighborSegIndexList = new();
         var neighborInfo = NeighborFaceInfoList[segGroupIndex];
-        
-        foreach (var (neighbor, neighborLocalSegIndex) in GetNeighborsOfLocalSegmentIndex(n, localSegmentIndex)) {
-            var (neighborAb, neighborT) = SplitLocalSegmentIndexToAbt(n, neighborLocalSegIndex);
-            
+
+        foreach (var (neighbor, neighborAb, neighborT) in GetLocalSegmentIndexNeighborsAsAbt(false, n, localSegmentIndex)) {
             switch (neighbor) {
                 case SegmentGroupNeighbor.Inside:
+                    var neighborLocalSegIndex = ConvertToSegmentIndex(segGroupIndex,
+                        ConvertToLocalSegmentIndex(n, neighborAb.x, neighborAb.y, neighborT));
+
                     neighborSegIndexList.Add(ConvertToSegmentIndex(segGroupIndex, neighborLocalSegIndex));
                     break;
                 case SegmentGroupNeighbor.O:
-                    neighborSegIndexList.Add(ConvertCoordinateByNeighborInfo(neighborInfo[0], n, neighborAb, neighborT));
+                    neighborSegIndexList.Add(ConvertCoordinateByNeighborInfo(baseAxisOrientation, neighborInfo[0], n, neighborAb, neighborT));
                     break;
                 case SegmentGroupNeighbor.A:
+                    neighborSegIndexList.Add(ConvertCoordinateByNeighborInfo(baseAxisOrientation, neighborInfo[1], n, neighborAb, neighborT));
                     break;
                 case SegmentGroupNeighbor.B:
+                    neighborSegIndexList.Add(ConvertCoordinateByNeighborInfo(baseAxisOrientation, neighborInfo[2], n, neighborAb, neighborT));
                     break;
                 case SegmentGroupNeighbor.OA:
                     break;
@@ -718,55 +735,64 @@ public class Sphere : MonoBehaviour {
 
         return neighborSegIndexList.ToArray();
     }
-    static int ConvertCoordinateByNeighborInfo((int, EdgeNeighbor, EdgeNeighborOrigin, AxisOrientation) neighborInfo,
-        int n,
-        Vector2Int neighborAb, bool neighborT) {
+    static int ConvertCoordinateByNeighborInfo(AxisOrientation baseAxisOrientation,
+        (int, EdgeNeighbor, EdgeNeighborOrigin, AxisOrientation) neighborInfo,
+        int n, Vector2Int neighborAb, bool neighborT) {
 
         var (neighborSegGroupIndex, edgeNeighbor, edgeNeighborOrigin, axisOrientation) = neighborInfo;
-        var (convertedAb, convertedT) = ConvertCoordinate(edgeNeighbor, edgeNeighborOrigin, axisOrientation, n, neighborAb, neighborT);
+        var (convertedAb, convertedT) =
+            ConvertCoordinate(baseAxisOrientation, edgeNeighbor, edgeNeighborOrigin, axisOrientation, n, neighborAb, neighborT);
         var convertedNeighborLocalSegIndex = ConvertToLocalSegmentIndex(n, convertedAb.x, convertedAb.y, convertedT);
         var convertedNeighborSegIndex = ConvertToSegmentIndex(neighborSegGroupIndex, convertedNeighborLocalSegIndex);
         return convertedNeighborSegIndex;
     }
 
-    public static (SegmentGroupNeighbor, int)[] GetNeighborsOfLocalSegmentIndex(int n, int localSegmentIndex) {
+    public static (SegmentGroupNeighbor, int)[] GetLocalSegmentIndexNeighbors(int n, int localSegmentIndex) {
+        return GetLocalSegmentIndexNeighborsAsAbt(true, n, localSegmentIndex).Select(e => {
+            var (neighbor, abNeighbor, tNeighbor) = e;
+            return (neighbor, ConvertToLocalSegmentIndex(n, abNeighbor.x, abNeighbor.y, tNeighbor));
+        }).ToArray();
+    }
+
+    static (SegmentGroupNeighbor, Vector2Int, bool)[]
+        GetLocalSegmentIndexNeighborsAsAbt(bool canonical, int n, int localSegmentIndex) {
         var (ab, t) = SplitLocalSegmentIndexToAbt(n, localSegmentIndex);
         if (t) {
             return new[] {
                 // 하단 행
-                ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x, ab.y - 1), true),
-                ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x + 1, ab.y - 1), false),
-                ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x + 1, ab.y - 1), true),
+                ConvertAbtToNeighborAbt(canonical, n, new(ab.x, ab.y - 1), true),
+                ConvertAbtToNeighborAbt(canonical, n, new(ab.x + 1, ab.y - 1), false),
+                ConvertAbtToNeighborAbt(canonical, n, new(ab.x + 1, ab.y - 1), true),
                 // 지금 행
-                ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x - 1, ab.y), true),
-                ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x, ab.y), false),
-                ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x + 1, ab.y), false),
-                ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x + 1, ab.y), true),
+                ConvertAbtToNeighborAbt(canonical, n, new(ab.x - 1, ab.y), true),
+                ConvertAbtToNeighborAbt(canonical, n, new(ab.x, ab.y), false),
+                ConvertAbtToNeighborAbt(canonical, n, new(ab.x + 1, ab.y), false),
+                ConvertAbtToNeighborAbt(canonical, n, new(ab.x + 1, ab.y), true),
                 // 상단 행
-                ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x - 1, ab.y + 1), false),
-                ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x - 1, ab.y + 1), true),
-                ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x, ab.y + 1), false),
-                ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x, ab.y + 1), true),
-                ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x + 1, ab.y + 1), false),
+                ConvertAbtToNeighborAbt(canonical, n, new(ab.x - 1, ab.y + 1), false),
+                ConvertAbtToNeighborAbt(canonical, n, new(ab.x - 1, ab.y + 1), true),
+                ConvertAbtToNeighborAbt(canonical, n, new(ab.x, ab.y + 1), false),
+                ConvertAbtToNeighborAbt(canonical, n, new(ab.x, ab.y + 1), true),
+                ConvertAbtToNeighborAbt(canonical, n, new(ab.x + 1, ab.y + 1), false),
             };
         }
 
         return new[] {
             // 하단 행
-            ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x - 1, ab.y - 1), true),
-            ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x, ab.y - 1), false),
-            ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x, ab.y - 1), true),
-            ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x + 1, ab.y - 1), false),
-            ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x + 1, ab.y - 1), true),
+            ConvertAbtToNeighborAbt(canonical, n, new(ab.x - 1, ab.y - 1), true),
+            ConvertAbtToNeighborAbt(canonical, n, new(ab.x, ab.y - 1), false),
+            ConvertAbtToNeighborAbt(canonical, n, new(ab.x, ab.y - 1), true),
+            ConvertAbtToNeighborAbt(canonical, n, new(ab.x + 1, ab.y - 1), false),
+            ConvertAbtToNeighborAbt(canonical, n, new(ab.x + 1, ab.y - 1), true),
             // 지금 행
-            ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x - 1, ab.y), false),
-            ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x - 1, ab.y), true),
-            ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x, ab.y), true),
-            ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x + 1, ab.y), false),
+            ConvertAbtToNeighborAbt(canonical, n, new(ab.x - 1, ab.y), false),
+            ConvertAbtToNeighborAbt(canonical, n, new(ab.x - 1, ab.y), true),
+            ConvertAbtToNeighborAbt(canonical, n, new(ab.x, ab.y), true),
+            ConvertAbtToNeighborAbt(canonical, n, new(ab.x + 1, ab.y), false),
             // 상단 행
-            ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x - 1, ab.y + 1), false),
-            ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x - 1, ab.y + 1), true),
-            ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x, ab.y + 1), false),
+            ConvertAbtToNeighborAbt(canonical, n, new(ab.x - 1, ab.y + 1), false),
+            ConvertAbtToNeighborAbt(canonical, n, new(ab.x - 1, ab.y + 1), true),
+            ConvertAbtToNeighborAbt(canonical, n, new(ab.x, ab.y + 1), false),
         };
     }
 
@@ -807,27 +833,28 @@ public class Sphere : MonoBehaviour {
     }
 
     static (Vector2Int, bool) ConvertCoordinateToO(int n, Vector2Int ab, bool t) {
-        return ConvertCoordinate(EdgeNeighbor.O, EdgeNeighborOrigin.Op, AxisOrientation.CCW, n, ab, t);
+        return ConvertCoordinate(AxisOrientation.CCW, EdgeNeighbor.O, EdgeNeighborOrigin.Op, AxisOrientation.CCW, n, ab, t);
     }
 
     static (Vector2Int, bool) ConvertCoordinateToA(int n, Vector2Int ab, bool t) {
-        return ConvertCoordinate(EdgeNeighbor.A, EdgeNeighborOrigin.O, AxisOrientation.CW, n, ab, t);
+        return ConvertCoordinate(AxisOrientation.CCW, EdgeNeighbor.A, EdgeNeighborOrigin.O, AxisOrientation.CW, n, ab, t);
     }
 
     static (Vector2Int, bool) ConvertCoordinateToB(int n, Vector2Int ab, bool t) {
-        return ConvertCoordinate(EdgeNeighbor.B, EdgeNeighborOrigin.O, AxisOrientation.CW, n, ab, t);
+        return ConvertCoordinate(AxisOrientation.CCW, EdgeNeighbor.B, EdgeNeighborOrigin.O, AxisOrientation.CW, n, ab, t);
     }
 
     static Vector2Int Swap(int a, int b, bool swap) {
         return swap == false ? new(a, b) : new(b, a);
     }
 
-    static (Vector2Int, bool) ConvertCoordinate(EdgeNeighbor edgeNeighbor, EdgeNeighborOrigin edgeNeighborOrigin,
-        AxisOrientation axisOrientation, int n, Vector2Int ab, bool t) {
+    static (Vector2Int, bool) ConvertCoordinate(AxisOrientation baseAxisOrientation,
+        EdgeNeighbor edgeNeighbor, EdgeNeighborOrigin edgeNeighborOrigin, AxisOrientation axisOrientation,
+        int n, Vector2Int ab, bool t) {
         var (a, b) = (ab.x, ab.y);
         var tv = t ? 1 : 0;
         var tInvert = t == false;
-        var swap = axisOrientation == AxisOrientation.CW;
+        var swap = baseAxisOrientation != axisOrientation;
 
         switch (edgeNeighbor) {
             case EdgeNeighbor.O:
@@ -981,7 +1008,7 @@ public class Sphere : MonoBehaviour {
 
     // 하나의 세그먼트 그룹을 벗어나 인접한 세그먼트 그룹 내 세그먼트를 가리키는
     // ABT 좌표를 인접한 세그먼트 그룹과 해당 세그먼트 그룹 내의 유효한 ABT 좌표로 변환하여 반환한다.
-    public static (SegmentGroupNeighbor, Vector2Int, bool) ConvertAbtToNeighborAndAbt(int n, Vector2Int ab, bool t) {
+    public static (SegmentGroupNeighbor, Vector2Int, bool) ConvertAbtToNeighborAbt(bool canonical, int n, Vector2Int ab, bool t) {
         if (n < 1) {
             throw new ArgumentOutOfRangeException(nameof(n));
         }
@@ -990,21 +1017,35 @@ public class Sphere : MonoBehaviour {
             case SegmentGroupNeighbor.Inside:
                 return (SegmentGroupNeighbor.Inside, ab, t);
             case SegmentGroupNeighbor.O: {
+                if (!canonical) {
+                    return (SegmentGroupNeighbor.O, ab, t);
+                }
+
                 var (abO, tO) = ConvertCoordinateToO(n, ab, t);
                 return (SegmentGroupNeighbor.O, abO, tO);
+
             }
             case SegmentGroupNeighbor.A: {
+                if (!canonical) {
+                    return (SegmentGroupNeighbor.A, ab, t);
+                }
+
                 var (abA, tA) = ConvertCoordinateToA(n, ab, t);
                 return (SegmentGroupNeighbor.A, abA, tA);
+
             }
             case SegmentGroupNeighbor.B: {
+                if (!canonical) {
+                    return (SegmentGroupNeighbor.B, ab, t);
+                }
+
                 var (abB, tB) = ConvertCoordinateToB(n, ab, t);
                 return (SegmentGroupNeighbor.B, abB, tB);
             }
             case SegmentGroupNeighbor.OA:
             case SegmentGroupNeighbor.OB: {
                 var (abO, tO) = ConvertCoordinateToO(n, ab, t);
-                var (neighbor, abOx, tOx) = ConvertAbtToNeighborAndAbt(n, abO, tO);
+                var (neighbor, abOx, tOx) = ConvertAbtToNeighborAbt(canonical, n, abO, tO);
                 // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
                 return neighbor switch {
                     SegmentGroupNeighbor.A => (SegmentGroupNeighbor.OA, abOx, tOx),
@@ -1015,7 +1056,7 @@ public class Sphere : MonoBehaviour {
             case SegmentGroupNeighbor.AO:
             case SegmentGroupNeighbor.AB: {
                 var (abA, tA) = ConvertCoordinateToA(n, ab, t);
-                var (neighbor, abAx, tAx) = ConvertAbtToNeighborAndAbt(n, abA, tA);
+                var (neighbor, abAx, tAx) = ConvertAbtToNeighborAbt(canonical, n, abA, tA);
                 // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
                 return neighbor switch {
                     SegmentGroupNeighbor.O => (SegmentGroupNeighbor.AO, abAx, tAx),
@@ -1026,7 +1067,7 @@ public class Sphere : MonoBehaviour {
             case SegmentGroupNeighbor.BO:
             case SegmentGroupNeighbor.BA: {
                 var (abB, tB) = ConvertCoordinateToB(n, ab, t);
-                var (neighbor, abBx, tBx) = ConvertAbtToNeighborAndAbt(n, abB, tB);
+                var (neighbor, abBx, tBx) = ConvertAbtToNeighborAbt(canonical, n, abB, tB);
                 // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
                 return neighbor switch {
                     SegmentGroupNeighbor.O => (SegmentGroupNeighbor.BO, abBx, tBx),
@@ -1041,11 +1082,6 @@ public class Sphere : MonoBehaviour {
         }
 
         throw new();
-    }
-
-    static (SegmentGroupNeighbor, int) ConvertAbtToNeighborAndLocalSegmentIndex(int n, Vector2Int ab, bool t) {
-        var (neighbor, abNeighbor, tNeighbor) = ConvertAbtToNeighborAndAbt(n, ab, t);
-        return (neighbor, ConvertToLocalSegmentIndex(n, abNeighbor.x, abNeighbor.y, tNeighbor));
     }
 #endif
 

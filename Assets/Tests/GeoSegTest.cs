@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using NUnit.Framework;
-using UnityEditorInternal;
 using UnityEngine;
 using UnityEngine.TestTools;
 
@@ -120,111 +119,111 @@ public class GeoSegTest {
     public void TestConvertAbtToNeighborAndAbt() {
         // n = 1
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.Inside, new Vector2Int(0, 0), false),
-            Sphere.ConvertAbtToNeighborAndAbt(1, new(0, 0), false));
+            Sphere.ConvertAbtToNeighborAbt(true, 1, new(0, 0), false));
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.O, new Vector2Int(0, 0), false),
-            Sphere.ConvertAbtToNeighborAndAbt(1, new(0, 0), true));
+            Sphere.ConvertAbtToNeighborAbt(true, 1, new(0, 0), true));
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.A, new Vector2Int(0, 0), false),
-            Sphere.ConvertAbtToNeighborAndAbt(1, new(-1, 0), true));
+            Sphere.ConvertAbtToNeighborAbt(true, 1, new(-1, 0), true));
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.B, new Vector2Int(0, 0), false),
-            Sphere.ConvertAbtToNeighborAndAbt(1, new(0, -1), true));
+            Sphere.ConvertAbtToNeighborAbt(true, 1, new(0, -1), true));
 
         // n = 2
         // Inside
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.Inside, new Vector2Int(0, 0), false),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(0, 0), false));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(0, 0), false));
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.Inside, new Vector2Int(0, 0), true),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(0, 0), true));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(0, 0), true));
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.Inside, new Vector2Int(1, 0), false),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(1, 0), false));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(1, 0), false));
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.Inside, new Vector2Int(0, 1), false),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(0, 1), false));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(0, 1), false));
         // O
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.O, new Vector2Int(0, 1), false),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(1, 0), true));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(1, 0), true));
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.O, new Vector2Int(1, 0), false),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(0, 1), true));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(0, 1), true));
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.O, new Vector2Int(0, 0), true),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(1, 1), false));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(1, 1), false));
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.O, new Vector2Int(0, 0), false),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(1, 1), true));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(1, 1), true));
         // A
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.A, new Vector2Int(0, 0), false),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(-1, 0), true));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(-1, 0), true));
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.A, new Vector2Int(0, 0), true),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(-1, 1), false));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(-1, 1), false));
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.A, new Vector2Int(1, 0), false),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(-2, 1), true));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(-2, 1), true));
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.A, new Vector2Int(0, 1), false),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(-1, 1), true));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(-1, 1), true));
         // B
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.B, new Vector2Int(0, 0), false),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(0, -1), true));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(0, -1), true));
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.B, new Vector2Int(0, 0), true),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(1, -1), false));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(1, -1), false));
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.B, new Vector2Int(1, 0), false),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(1, -1), true));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(1, -1), true));
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.B, new Vector2Int(0, 1), false),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(1, -2), true));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(1, -2), true));
 
         // OA
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.OA, new Vector2Int(0, 0), false),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(2, 1), false));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(2, 1), false));
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.OA, new Vector2Int(0, 0), true),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(2, 0), true));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(2, 0), true));
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.OA, new Vector2Int(1, 0), false),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(3, 0), false));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(3, 0), false));
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.OA, new Vector2Int(0, 1), false),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(2, 0), false));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(2, 0), false));
 
         // OB
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.OB, new Vector2Int(0, 0), false),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(1, 2), false));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(1, 2), false));
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.OB, new Vector2Int(0, 0), true),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(0, 2), true));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(0, 2), true));
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.OB, new Vector2Int(1, 0), false),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(0, 2), false));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(0, 2), false));
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.OB, new Vector2Int(0, 1), false),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(0, 3), false));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(0, 3), false));
 
         // AO
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.AO, new Vector2Int(0, 0), false),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(-2, 3), false));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(-2, 3), false));
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.AO, new Vector2Int(0, 0), true),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(-2, 2), true));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(-2, 2), true));
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.AO, new Vector2Int(1, 0), false),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(-1, 2), false));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(-1, 2), false));
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.AO, new Vector2Int(0, 1), false),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(-2, 2), false));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(-2, 2), false));
 
         // AB
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.AB, new Vector2Int(0, 0), false),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(-1, 0), false));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(-1, 0), false));
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.AB, new Vector2Int(0, 0), true),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(-2, 0), true));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(-2, 0), true));
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.AB, new Vector2Int(1, 0), false),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(-2, 1), false));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(-2, 1), false));
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.AB, new Vector2Int(0, 1), false),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(-2, 0), false));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(-2, 0), false));
 
         // BO
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.BO, new Vector2Int(0, 0), false),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(3, -2), false));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(3, -2), false));
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.BO, new Vector2Int(0, 0), true),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(2, -2), true));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(2, -2), true));
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.BO, new Vector2Int(1, 0), false),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(2, -2), false));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(2, -2), false));
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.BO, new Vector2Int(0, 1), false),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(2, -1), false));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(2, -1), false));
 
         // BA
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.BA, new Vector2Int(0, 0), false),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(0, -1), false));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(0, -1), false));
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.BA, new Vector2Int(0, 0), true),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(0, -2), true));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(0, -2), true));
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.BA, new Vector2Int(1, 0), false),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(0, -2), false));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(0, -2), false));
         Assert.AreEqual((Sphere.SegmentGroupNeighbor.BA, new Vector2Int(0, 1), false),
-            Sphere.ConvertAbtToNeighborAndAbt(2, new(1, -2), false));
+            Sphere.ConvertAbtToNeighborAbt(true, 2, new(1, -2), false));
     }
 
     [Test]
@@ -266,7 +265,7 @@ public class GeoSegTest {
             (Sphere.SegmentGroupNeighbor.Inside, 35),
             (Sphere.SegmentGroupNeighbor.Inside, 36),
             (Sphere.SegmentGroupNeighbor.Inside, 37),
-        }, Sphere.GetNeighborsOfLocalSegmentIndex(7, 27));
+        }, Sphere.GetLocalSegmentIndexNeighbors(7, 27));
     }
 
     [Test]
