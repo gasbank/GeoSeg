@@ -50,27 +50,27 @@ public class GeoSegTest {
     [Test]
     public void TestConvertToAbtCoords() {
         // n = 0
-        Assert.Throws<IndexOutOfRangeException>(() => Sphere.ConvertLocalSegmentIndexToAbt(0, 0));
+        Assert.Throws<IndexOutOfRangeException>(() => Sphere.SplitLocalSegmentIndexToAbt(0, 0));
 
         // n = 1
-        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 0), false), Sphere.ConvertLocalSegmentIndexToAbt(1, 0));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 0), false), Sphere.SplitLocalSegmentIndexToAbt(1, 0));
 
         // n = 2
-        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 0), false), Sphere.ConvertLocalSegmentIndexToAbt(2, 0));
-        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 0), true), Sphere.ConvertLocalSegmentIndexToAbt(2, 1));
-        Assert.AreEqual(Tuple.Create(new Vector2Int(1, 0), false), Sphere.ConvertLocalSegmentIndexToAbt(2, 2));
-        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 1), false), Sphere.ConvertLocalSegmentIndexToAbt(2, 3));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 0), false), Sphere.SplitLocalSegmentIndexToAbt(2, 0));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 0), true), Sphere.SplitLocalSegmentIndexToAbt(2, 1));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(1, 0), false), Sphere.SplitLocalSegmentIndexToAbt(2, 2));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 1), false), Sphere.SplitLocalSegmentIndexToAbt(2, 3));
 
         // n = 3
-        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 0), false), Sphere.ConvertLocalSegmentIndexToAbt(3, 0));
-        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 0), true), Sphere.ConvertLocalSegmentIndexToAbt(3, 1));
-        Assert.AreEqual(Tuple.Create(new Vector2Int(1, 0), false), Sphere.ConvertLocalSegmentIndexToAbt(3, 2));
-        Assert.AreEqual(Tuple.Create(new Vector2Int(1, 0), true), Sphere.ConvertLocalSegmentIndexToAbt(3, 3));
-        Assert.AreEqual(Tuple.Create(new Vector2Int(2, 0), false), Sphere.ConvertLocalSegmentIndexToAbt(3, 4));
-        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 1), false), Sphere.ConvertLocalSegmentIndexToAbt(3, 5));
-        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 1), true), Sphere.ConvertLocalSegmentIndexToAbt(3, 6));
-        Assert.AreEqual(Tuple.Create(new Vector2Int(1, 1), false), Sphere.ConvertLocalSegmentIndexToAbt(3, 7));
-        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 2), false), Sphere.ConvertLocalSegmentIndexToAbt(3, 8));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 0), false), Sphere.SplitLocalSegmentIndexToAbt(3, 0));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 0), true), Sphere.SplitLocalSegmentIndexToAbt(3, 1));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(1, 0), false), Sphere.SplitLocalSegmentIndexToAbt(3, 2));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(1, 0), true), Sphere.SplitLocalSegmentIndexToAbt(3, 3));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(2, 0), false), Sphere.SplitLocalSegmentIndexToAbt(3, 4));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 1), false), Sphere.SplitLocalSegmentIndexToAbt(3, 5));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 1), true), Sphere.SplitLocalSegmentIndexToAbt(3, 6));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(1, 1), false), Sphere.SplitLocalSegmentIndexToAbt(3, 7));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 2), false), Sphere.SplitLocalSegmentIndexToAbt(3, 8));
     }
 
     [Test]

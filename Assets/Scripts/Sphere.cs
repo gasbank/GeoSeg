@@ -429,7 +429,7 @@ public class Sphere : MonoBehaviour {
                               + $" * Local segment index {localSegmentIndex}\n"
                               + $" * Segment index {segmentIndex}\n"
                               + "-----------\n"
-                              + $" * ABT (check): {ConvertLocalSegmentIndexToAbt(SubdivisionCount, localSegmentIndex)}\n"
+                              + $" * ABT (check): {SplitLocalSegmentIndexToAbt(SubdivisionCount, localSegmentIndex)}\n"
                               + $" * Segment Group & ABT (check): {SplitSegIndexToSegGroupAndAbt(SubdivisionCount, segmentIndex)}\n"
                               + "-----------\n"
                               + $"Segment Center Lat: {centerLat * Mathf.Rad2Deg}°, Lng: {centerLng * Mathf.Rad2Deg}°\n"
@@ -501,7 +501,7 @@ public class Sphere : MonoBehaviour {
         return b0;
     }
 
-    public static Tuple<Vector2Int, bool> ConvertLocalSegmentIndexToAbt(int n, int localSegmentIndex) {
+    public static Tuple<Vector2Int, bool> SplitLocalSegmentIndexToAbt(int n, int localSegmentIndex) {
         if (n <= 0) {
             throw new IndexOutOfRangeException(nameof(n));
         }
@@ -524,7 +524,7 @@ public class Sphere : MonoBehaviour {
     // Seg Index를 Seg Group & ABT로 변환해서 반환
     static Tuple<int, Vector2Int, bool> SplitSegIndexToSegGroupAndAbt(int n, int segmentIndex) {
         var (segmentGroupIndex, localSegIndex) = SplitSegIndexToSegGroupAndLocalSegmentIndex(n, segmentIndex);
-        var (abCoords, top) = ConvertLocalSegmentIndexToAbt(n, localSegIndex);
+        var (abCoords, top) = SplitLocalSegmentIndexToAbt(n, localSegIndex);
         return Tuple.Create(segmentGroupIndex, abCoords, top);
     }
 
@@ -634,7 +634,7 @@ public class Sphere : MonoBehaviour {
             throw new ArgumentOutOfRangeException(nameof(localSegmentIndex));
         }
 
-        var (ab, t) = ConvertLocalSegmentIndexToAbt(n, localSegmentIndex);
+        var (ab, t) = SplitLocalSegmentIndexToAbt(n, localSegmentIndex);
 
         List<int> ret = new();
 
@@ -679,13 +679,19 @@ public class Sphere : MonoBehaviour {
     // 여러 세그먼트 그룹에 걸쳐야하므로, 세그먼트 서브 인덱스로 조회할 수는 없다.
     public static int[] GetNeighborsOfSegmentIndex(int n, int segmentIndex) {
         var (segGroupIndex, localSegmentIndex) = SplitSegIndexToSegGroupAndLocalSegmentIndex(n, segmentIndex);
-
+        
+        List<int> neighborSegIndexList = new();
+        var neighborInfo = NeighborFaceInfoList[segGroupIndex];
+        
         foreach (var (neighbor, neighborLocalSegIndex) in GetNeighborsOfLocalSegmentIndex(n, localSegmentIndex)) {
+            var (neighborAb, neighborT) = SplitLocalSegmentIndexToAbt(n, neighborLocalSegIndex);
+            
             switch (neighbor) {
                 case SegmentGroupNeighbor.Inside:
+                    neighborSegIndexList.Add(ConvertToSegmentIndex(segGroupIndex, neighborLocalSegIndex));
                     break;
                 case SegmentGroupNeighbor.O:
-                    var (neighborFaceIndex, edgeNeighbor, edgeNeighborOrigin, axisOrientation) = NeighborFaceInfoList[segGroupIndex][0];
+                    neighborSegIndexList.Add(ConvertCoordinateByNeighborInfo(neighborInfo[0], n, neighborAb, neighborT));
                     break;
                 case SegmentGroupNeighbor.A:
                     break;
@@ -710,12 +716,21 @@ public class Sphere : MonoBehaviour {
             }
         }
 
-        return new int[] {
-        };
+        return neighborSegIndexList.ToArray();
+    }
+    static int ConvertCoordinateByNeighborInfo((int, EdgeNeighbor, EdgeNeighborOrigin, AxisOrientation) neighborInfo,
+        int n,
+        Vector2Int neighborAb, bool neighborT) {
+
+        var (neighborSegGroupIndex, edgeNeighbor, edgeNeighborOrigin, axisOrientation) = neighborInfo;
+        var (convertedAb, convertedT) = ConvertCoordinate(edgeNeighbor, edgeNeighborOrigin, axisOrientation, n, neighborAb, neighborT);
+        var convertedNeighborLocalSegIndex = ConvertToLocalSegmentIndex(n, convertedAb.x, convertedAb.y, convertedT);
+        var convertedNeighborSegIndex = ConvertToSegmentIndex(neighborSegGroupIndex, convertedNeighborLocalSegIndex);
+        return convertedNeighborSegIndex;
     }
 
     public static (SegmentGroupNeighbor, int)[] GetNeighborsOfLocalSegmentIndex(int n, int localSegmentIndex) {
-        var (ab, t) = ConvertLocalSegmentIndexToAbt(n, localSegmentIndex);
+        var (ab, t) = SplitLocalSegmentIndexToAbt(n, localSegmentIndex);
         if (t) {
             return new[] {
                 // 하단 행
