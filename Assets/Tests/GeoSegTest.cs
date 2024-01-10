@@ -233,27 +233,19 @@ public class GeoSegTest {
         Assert.Catch<ArgumentOutOfRangeException>(() => Sphere.CheckBottomOrTopFromParallelogram(0, new(0, 0), false));
 
         // n = 1
-        Assert.AreEqual(Sphere.ParallelogramGroup.Bottom,
-            Sphere.CheckBottomOrTopFromParallelogram(1, new(0, 0), false));
+        Assert.AreEqual(Sphere.ParallelogramGroup.Bottom, Sphere.CheckBottomOrTopFromParallelogram(1, new(0, 0), false));
         Assert.AreEqual(Sphere.ParallelogramGroup.Top, Sphere.CheckBottomOrTopFromParallelogram(1, new(0, 0), true));
-        Assert.AreEqual(Sphere.ParallelogramGroup.Outside,
-            Sphere.CheckBottomOrTopFromParallelogram(1, new(1, 0), true));
-        Assert.AreEqual(Sphere.ParallelogramGroup.Outside,
-            Sphere.CheckBottomOrTopFromParallelogram(1, new(0, 1), true));
-        Assert.AreEqual(Sphere.ParallelogramGroup.Outside,
-            Sphere.CheckBottomOrTopFromParallelogram(1, new(1, 1), true));
-        Assert.AreEqual(Sphere.ParallelogramGroup.Outside,
-            Sphere.CheckBottomOrTopFromParallelogram(1, new(-1, -1), true));
+        Assert.AreEqual(Sphere.ParallelogramGroup.Outside, Sphere.CheckBottomOrTopFromParallelogram(1, new(1, 0), true));
+        Assert.AreEqual(Sphere.ParallelogramGroup.Outside, Sphere.CheckBottomOrTopFromParallelogram(1, new(0, 1), true));
+        Assert.AreEqual(Sphere.ParallelogramGroup.Outside, Sphere.CheckBottomOrTopFromParallelogram(1, new(1, 1), true));
+        Assert.AreEqual(Sphere.ParallelogramGroup.Outside, Sphere.CheckBottomOrTopFromParallelogram(1, new(-1, -1), true));
 
         // n = 2
-        Assert.AreEqual(Sphere.ParallelogramGroup.Bottom,
-            Sphere.CheckBottomOrTopFromParallelogram(2, new(0, 0), false));
+        Assert.AreEqual(Sphere.ParallelogramGroup.Bottom, Sphere.CheckBottomOrTopFromParallelogram(2, new(0, 0), false));
         Assert.AreEqual(Sphere.ParallelogramGroup.Bottom, Sphere.CheckBottomOrTopFromParallelogram(2, new(0, 0), true));
-        Assert.AreEqual(Sphere.ParallelogramGroup.Bottom,
-            Sphere.CheckBottomOrTopFromParallelogram(2, new(1, 0), false));
+        Assert.AreEqual(Sphere.ParallelogramGroup.Bottom, Sphere.CheckBottomOrTopFromParallelogram(2, new(1, 0), false));
         Assert.AreEqual(Sphere.ParallelogramGroup.Top, Sphere.CheckBottomOrTopFromParallelogram(2, new(1, 0), true));
-        Assert.AreEqual(Sphere.ParallelogramGroup.Bottom,
-            Sphere.CheckBottomOrTopFromParallelogram(2, new(0, 1), false));
+        Assert.AreEqual(Sphere.ParallelogramGroup.Bottom, Sphere.CheckBottomOrTopFromParallelogram(2, new(0, 1), false));
         Assert.AreEqual(Sphere.ParallelogramGroup.Top, Sphere.CheckBottomOrTopFromParallelogram(2, new(0, 1), true));
         Assert.AreEqual(Sphere.ParallelogramGroup.Top, Sphere.CheckBottomOrTopFromParallelogram(2, new(1, 1), false));
         Assert.AreEqual(Sphere.ParallelogramGroup.Top, Sphere.CheckBottomOrTopFromParallelogram(2, new(1, 1), true));
@@ -298,6 +290,195 @@ public class GeoSegTest {
         Assert.AreEqual(Sphere.SegmentGroupNeighbor.Outside, Sphere.CheckSegmentGroupNeighbor(1, new(-1, 1), true));
         Assert.AreEqual(Sphere.SegmentGroupNeighbor.Outside, Sphere.CheckSegmentGroupNeighbor(1, new(-1, -1), false));
         Assert.AreEqual(Sphere.SegmentGroupNeighbor.Outside, Sphere.CheckSegmentGroupNeighbor(1, new(-1, -1), true));
+    }
+
+    [Test]
+    public void TestDetermineEdgeNeighborOrigin() {
+        // Neighbor O
+        Assert.AreEqual((Sphere.EdgeNeighbor.O, Sphere.EdgeNeighborOrigin.Op, Sphere.AxisOrientation.Clockwise),
+            Sphere.DetermineEdgeNeighborOrigin(new[] {
+                0,
+                1,
+                2,
+            }, new[] {
+                30,
+                1,
+                2,
+            }));
+        Assert.AreEqual((Sphere.EdgeNeighbor.O, Sphere.EdgeNeighborOrigin.Op, Sphere.AxisOrientation.CounterClockwise),
+            Sphere.DetermineEdgeNeighborOrigin(new[] {
+                0,
+                1,
+                2,
+            }, new[] {
+                30,
+                2,
+                1,
+            }));
+        Assert.AreEqual((Sphere.EdgeNeighbor.O, Sphere.EdgeNeighborOrigin.A, Sphere.AxisOrientation.Clockwise),
+            Sphere.DetermineEdgeNeighborOrigin(new[] {
+                0,
+                1,
+                2,
+            }, new[] {
+                1,
+                2,
+                30,
+            }));
+        Assert.AreEqual((Sphere.EdgeNeighbor.O, Sphere.EdgeNeighborOrigin.A, Sphere.AxisOrientation.CounterClockwise),
+            Sphere.DetermineEdgeNeighborOrigin(new[] {
+                0,
+                1,
+                2,
+            }, new[] {
+                1,
+                30,
+                2,
+            }));
+        Assert.AreEqual((Sphere.EdgeNeighbor.O, Sphere.EdgeNeighborOrigin.B, Sphere.AxisOrientation.CounterClockwise),
+            Sphere.DetermineEdgeNeighborOrigin(new[] {
+                0,
+                1,
+                2,
+            }, new[] {
+                2,
+                1,
+                30,
+            }));
+        Assert.AreEqual((Sphere.EdgeNeighbor.O, Sphere.EdgeNeighborOrigin.B, Sphere.AxisOrientation.Clockwise),
+            Sphere.DetermineEdgeNeighborOrigin(new[] {
+                0,
+                1,
+                2,
+            }, new[] {
+                2,
+                30,
+                1,
+            }));
+        
+        // Neighbor A
+        Assert.AreEqual((Sphere.EdgeNeighbor.A, Sphere.EdgeNeighborOrigin.O, Sphere.AxisOrientation.Clockwise),
+            Sphere.DetermineEdgeNeighborOrigin(new[] {
+                0,
+                1,
+                2,
+            }, new[] {
+                0,
+                20,
+                2,
+            }));
+        Assert.AreEqual((Sphere.EdgeNeighbor.A, Sphere.EdgeNeighborOrigin.O, Sphere.AxisOrientation.CounterClockwise),
+            Sphere.DetermineEdgeNeighborOrigin(new[] {
+                0,
+                1,
+                2,
+            }, new[] {
+                0,
+                2,
+                20,
+            }));
+        Assert.AreEqual((Sphere.EdgeNeighbor.A, Sphere.EdgeNeighborOrigin.Ap, Sphere.AxisOrientation.Clockwise),
+            Sphere.DetermineEdgeNeighborOrigin(new[] {
+                0,
+                1,
+                2,
+            }, new[] {
+                20,
+                2,
+                0,
+            }));
+        Assert.AreEqual((Sphere.EdgeNeighbor.A, Sphere.EdgeNeighborOrigin.Ap, Sphere.AxisOrientation.CounterClockwise),
+            Sphere.DetermineEdgeNeighborOrigin(new[] {
+                0,
+                1,
+                2,
+            }, new[] {
+                20,
+                0,
+                2,
+            }));
+        Assert.AreEqual((Sphere.EdgeNeighbor.A, Sphere.EdgeNeighborOrigin.B, Sphere.AxisOrientation.CounterClockwise),
+            Sphere.DetermineEdgeNeighborOrigin(new[] {
+                0,
+                1,
+                2,
+            }, new[] {
+                2,
+                20,
+                0,
+            }));
+        Assert.AreEqual((Sphere.EdgeNeighbor.A, Sphere.EdgeNeighborOrigin.B, Sphere.AxisOrientation.Clockwise),
+            Sphere.DetermineEdgeNeighborOrigin(new[] {
+                0,
+                1,
+                2,
+            }, new[] {
+                2,
+                0,
+                20,
+            }));
+        
+        // Neighbor B
+        Assert.AreEqual((Sphere.EdgeNeighbor.B, Sphere.EdgeNeighborOrigin.O, Sphere.AxisOrientation.Clockwise),
+            Sphere.DetermineEdgeNeighborOrigin(new[] {
+                0,
+                1,
+                2,
+            }, new[] {
+                0,
+                1,
+                10,
+            }));
+        Assert.AreEqual((Sphere.EdgeNeighbor.B, Sphere.EdgeNeighborOrigin.O, Sphere.AxisOrientation.CounterClockwise),
+            Sphere.DetermineEdgeNeighborOrigin(new[] {
+                0,
+                1,
+                2,
+            }, new[] {
+                0,
+                10,
+                1,
+            }));
+        Assert.AreEqual((Sphere.EdgeNeighbor.B, Sphere.EdgeNeighborOrigin.A, Sphere.AxisOrientation.Clockwise),
+            Sphere.DetermineEdgeNeighborOrigin(new[] {
+                0,
+                1,
+                2,
+            }, new[] {
+                1,
+                10,
+                0,
+            }));
+        Assert.AreEqual((Sphere.EdgeNeighbor.B, Sphere.EdgeNeighborOrigin.A, Sphere.AxisOrientation.CounterClockwise),
+            Sphere.DetermineEdgeNeighborOrigin(new[] {
+                0,
+                1,
+                2,
+            }, new[] {
+                1,
+                0,
+                10,
+            }));
+        Assert.AreEqual((Sphere.EdgeNeighbor.B, Sphere.EdgeNeighborOrigin.Bp, Sphere.AxisOrientation.CounterClockwise),
+            Sphere.DetermineEdgeNeighborOrigin(new[] {
+                0,
+                1,
+                2,
+            }, new[] {
+                10,
+                1,
+                0,
+            }));
+        Assert.AreEqual((Sphere.EdgeNeighbor.B, Sphere.EdgeNeighborOrigin.Bp, Sphere.AxisOrientation.Clockwise),
+            Sphere.DetermineEdgeNeighborOrigin(new[] {
+                0,
+                1,
+                2,
+            }, new[] {
+                10,
+                0,
+                1,
+            }));
     }
 
     // A UnityTest behaves like a coroutine in Play Mode. In Edit Mode you can use

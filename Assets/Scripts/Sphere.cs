@@ -148,7 +148,7 @@ public class Sphere : MonoBehaviour {
         },
     };
 
-    static readonly int[][] NeighborFaceIndices = BuildFaceNeighbors();
+    static readonly (int[], EdgeNeighbor, EdgeNeighborOrigin, AxisOrientation)[] NeighborFaceIndices = BuildFaceNeighbors();
 
     static readonly Vector3[] Vertices = {
         new(0, -Hh, -Wh),
@@ -165,7 +165,7 @@ public class Sphere : MonoBehaviour {
         new(-Hh, +Wh, 0),
     };
 
-    const int SubdivisionCount = 128;//8192;
+    const int SubdivisionCount = 128; //8192;
     const int RenderingSubdivisionCountLimit = 128;
 
     void Start() {
@@ -204,8 +204,75 @@ public class Sphere : MonoBehaviour {
             go.name = $"Segment Group {index}";
         }
     }
-    static int[][] BuildFaceNeighbors() {
-        List<int[]> neighbors = new();
+
+    public static (EdgeNeighbor, EdgeNeighborOrigin, AxisOrientation) DetermineEdgeNeighborOrigin(int[] face, int[] neighbor) {
+        if (face.Length != 3) {
+            throw new ArgumentOutOfRangeException(nameof(face), face, null);
+        }
+
+        if (neighbor.Length != 3) {
+            throw new ArgumentOutOfRangeException(nameof(neighbor), face, null);
+        }
+
+        if (face.Intersect(neighbor).Count() != 2) {
+            throw new("Not neighbor");
+        }
+
+        var neighborListed = neighbor.ToList();
+        var neighborIndexOfFaceVerts = face.Select(e => neighborListed.IndexOf(e)).ToArray();
+
+        EdgeNeighbor edgeNeighbor;
+        EdgeNeighborOrigin edgeNeighborOrigin;
+        AxisOrientation axisOrientation;
+
+        if (neighborIndexOfFaceVerts[0] == -1) {
+            edgeNeighbor = EdgeNeighbor.O;
+
+            if (neighborIndexOfFaceVerts[1] == 0) {
+                edgeNeighborOrigin = EdgeNeighborOrigin.A;
+                axisOrientation = neighbor[1] == face[2] ? AxisOrientation.Clockwise : AxisOrientation.CounterClockwise;
+            } else if (neighborIndexOfFaceVerts[2] == 0) {
+                edgeNeighborOrigin = EdgeNeighborOrigin.B;
+                axisOrientation = neighbor[1] == face[1] ? AxisOrientation.CounterClockwise : AxisOrientation.Clockwise;
+            } else {
+                edgeNeighborOrigin = EdgeNeighborOrigin.Op;
+                axisOrientation = neighbor[1] == face[1] ? AxisOrientation.Clockwise : AxisOrientation.CounterClockwise;
+            }
+        } else if (neighborIndexOfFaceVerts[1] == -1) {
+            edgeNeighbor = EdgeNeighbor.A;
+
+            if (neighborIndexOfFaceVerts[0] == 0) {
+                edgeNeighborOrigin = EdgeNeighborOrigin.O;
+                axisOrientation = neighbor[1] == face[2] ? AxisOrientation.CounterClockwise : AxisOrientation.Clockwise;
+            } else if (neighborIndexOfFaceVerts[2] == 0) {
+                edgeNeighborOrigin = EdgeNeighborOrigin.B;
+                axisOrientation = neighbor[1] == face[0] ? AxisOrientation.Clockwise : AxisOrientation.CounterClockwise;
+            } else {
+                edgeNeighborOrigin = EdgeNeighborOrigin.Ap;
+                axisOrientation = neighbor[1] == face[0] ? AxisOrientation.CounterClockwise : AxisOrientation.Clockwise;
+            }
+        } else if (neighborIndexOfFaceVerts[2] == -1) {
+            edgeNeighbor = EdgeNeighbor.B;
+
+            if (neighborIndexOfFaceVerts[0] == 0) {
+                edgeNeighborOrigin = EdgeNeighborOrigin.O;
+                axisOrientation = neighbor[1] == face[1] ? AxisOrientation.Clockwise : AxisOrientation.CounterClockwise;
+            } else if (neighborIndexOfFaceVerts[1] == 0) {
+                edgeNeighborOrigin = EdgeNeighborOrigin.A;
+                axisOrientation = neighbor[1] == face[0] ? AxisOrientation.CounterClockwise : AxisOrientation.Clockwise;
+            } else {
+                edgeNeighborOrigin = EdgeNeighborOrigin.Bp;
+                axisOrientation = neighbor[1] == face[0] ? AxisOrientation.Clockwise : AxisOrientation.CounterClockwise;
+            }
+        } else {
+            throw new("Logic Error");
+        }
+
+        return (edgeNeighbor, edgeNeighborOrigin, axisOrientation);
+    }
+
+    static (int[], EdgeNeighbor, EdgeNeighborOrigin, AxisOrientation)[] BuildFaceNeighbors() {
+        List<(int[], EdgeNeighbor, EdgeNeighborOrigin, AxisOrientation)> neighbors = new();
         for (var i = 0; i < VertIndexPerFaces.Length; i++) {
             var neighborO = -1;
             var neighborA = -1;
@@ -216,12 +283,13 @@ public class Sphere : MonoBehaviour {
                 if (i == j) {
                     continue;
                 }
-                
+
                 var ej = VertIndexPerFaces[j];
-                
+
                 if (ej.Contains(ei[1]) && ej.Contains(ei[2])) {
                     // 원점에서 가장 멀게 맞닿은 면은 N_O다.
                     neighborO = j;
+                    //ej[0] == ei[0]
                 } else if (ej.Contains(ei[0]) && ej.Contains(ei[2])) {
                     // B축에 맞닿은 면은 N_A다.
                     neighborA = j;
@@ -234,13 +302,13 @@ public class Sphere : MonoBehaviour {
             if (neighborO < 0 || neighborA < 0 || neighborB < 0) {
                 throw new("Logic Error");
             }
-            
+
             // 면의 이웃 인덱스는 N_O, N_A, N_B 순으로 넣는다.
-            neighbors.Add(new[] {
+            neighbors.Add((new[] {
                 neighborO,
                 neighborA,
                 neighborB,
-            });
+            }, EdgeNeighbor.O, EdgeNeighborOrigin.O, AxisOrientation.Clockwise));
         }
 
         return neighbors.ToArray();
@@ -276,8 +344,7 @@ public class Sphere : MonoBehaviour {
             var center = edgeVertices.Aggregate(Vector3.zero, (s, v) => s + v) / edgeVertices.Length;
             var faceAngle = Vector3.Angle(SceneView.currentDrawingSceneView.camera.transform.position, center);
             if (faceAngle is >= 0 and <= 90) {
-                Handles.Label(center, $"f{index}",
-                    index == intersectedSegmentGroupIndex ? selectedHandleStyle : handleStyle);
+                Handles.Label(center, $"f{index}", index == intersectedSegmentGroupIndex ? selectedHandleStyle : handleStyle);
             }
 
             segmentGroupTriList.Add(edgeVertices);
@@ -292,12 +359,10 @@ public class Sphere : MonoBehaviour {
             for (var index = 0; index < segmentGroupTriList.Count; index++) {
                 var triList = segmentGroupTriList[index];
                 var position = userPos.position;
-                var intersectTuv = Intersection.GetTimeAndUvCoord(position, -position, triList[0],
-                    triList[1], triList[2]);
+                var intersectTuv = Intersection.GetTimeAndUvCoord(position, -position, triList[0], triList[1], triList[2]);
                 if (intersectTuv != null) {
                     intersectedSegmentGroupIndex = index;
-                    intersectPosCoords =
-                        Intersection.GetTrilinearCoordinateOfTheHit(intersectTuv.Value.x, position, -position);
+                    intersectPosCoords = Intersection.GetTrilinearCoordinateOfTheHit(intersectTuv.Value.x, position, -position);
                     intersectPos.position = intersectPosCoords.normalized;
                     break;
                 }
@@ -311,8 +376,7 @@ public class Sphere : MonoBehaviour {
                 var (abCoords, top) = CalculateAbCoords(triList[0], triList[1], triList[2], intersectPosCoords);
 
                 var segmentSubIndex = ConvertToSegmentSubIndex(SubdivisionCount, abCoords.x, abCoords.y, top);
-                var segmentIndex = ConvertToSegmentIndex(intersectedSegmentGroupIndex, SubdivisionCount, abCoords.x,
-                    abCoords.y, top);
+                var segmentIndex = ConvertToSegmentIndex(intersectedSegmentGroupIndex, SubdivisionCount, abCoords.x, abCoords.y, top);
 
                 centerPos.position = CalculateSegmentCenter(SubdivisionCount, segmentIndex);
 
@@ -320,7 +384,8 @@ public class Sphere : MonoBehaviour {
                 foreach (var (neighbor, neighborSegSubIndex) in GetNeighborsOfSubSegmentIndex(SubdivisionCount, segmentSubIndex)) {
                     if (neighbor == SegmentGroupNeighbor.Inside) {
                         var neighborSegmentIndex = ConvertToSegmentIndex(intersectedSegmentGroupIndex, neighborSegSubIndex);
-                        neighborPosList[neighborPosListIndex].position = CalculateSegmentCenter(SubdivisionCount, neighborSegmentIndex);
+                        neighborPosList[neighborPosListIndex].position =
+                            CalculateSegmentCenter(SubdivisionCount, neighborSegmentIndex);
                         neighborPosList[neighborPosListIndex].gameObject.SetActive(true);
                         neighborPosListIndex++;
                     }
@@ -331,11 +396,9 @@ public class Sphere : MonoBehaviour {
                 }
 
                 var (centerLat, centerLng) = CalculateSegmentCenterLatLng(SubdivisionCount, segmentIndex);
-                
+
                 // Neighbor (depth=1)
-                var neighborFaces = NeighborFaceIndices[intersectedSegmentGroupIndex];
-                // Neighbor (depth=2)
-                var neighborFaces2 = neighborFaces.Select(e => NeighborFaceIndices[e]).ToArray();
+                var (neighborFaces, _, _, _) = NeighborFaceIndices[intersectedSegmentGroupIndex];
 
                 OverlayText = $"Intersection Lat: {lat * Mathf.Rad2Deg}°, Lng: {lng * Mathf.Rad2Deg}°\n"
                               + $"Segment Group: {intersectedSegmentGroupIndex} ABT: {(abCoords, top)}\n"
@@ -346,8 +409,7 @@ public class Sphere : MonoBehaviour {
                               + $" * Segment Group & ABT (check): {ConvertSegIndexToSegGroupAndAbt(SubdivisionCount, segmentIndex)}\n"
                               + "-----------\n"
                               + $"Segment Center Lat: {centerLat * Mathf.Rad2Deg}°, Lng: {centerLng * Mathf.Rad2Deg}°\n"
-                              + $"Neighbor Faces: {neighborFaces[0]}, {neighborFaces[1]}, {neighborFaces[2]}\n"
-                              + $"    (depth 2) : ({neighborFaces2[0][1]}, {neighborFaces2[0][2]}), ({neighborFaces2[1][0]}, {neighborFaces2[1][2]}), ({neighborFaces2[2][0]}, {neighborFaces2[2][1]})";
+                              + $"Neighbor Faces: {neighborFaces[0]}, {neighborFaces[1]}, {neighborFaces[2]}";
             } else {
                 Debug.Log("?! Not intersected !?");
                 OverlayText = "?! Not intersected !?";
@@ -422,8 +484,7 @@ public class Sphere : MonoBehaviour {
 
         var b = SearchForB(n, 0, n - 1, segmentSubIndex);
         var a = (segmentSubIndex - CalculateSegmentSubIndexForB(n, b)) / 2;
-        return new(new(a, b),
-            (b % 2 == 0 && segmentSubIndex % 2 == 0 || b % 2 == 1 && segmentSubIndex % 2 == 1) == false);
+        return new(new(a, b), (b % 2 == 0 && segmentSubIndex % 2 == 0 || b % 2 == 1 && segmentSubIndex % 2 == 1) == false);
     }
 
     // 32비트 중 MSB 1비트는 부호 비트로 남겨두고, 세그먼트 그룹 인덱스는 총 0~19 범위이므로 5비트가 필요하다.
@@ -515,8 +576,8 @@ public class Sphere : MonoBehaviour {
 
         var lngVec = new Vector3(Mathf.Cos(lng), 0, Mathf.Sin(lng));
 
-        var lat = Normalize(Mathf.Sign(pNormalized.y) * Vector3.Angle(lngVec, pNormalized) * Mathf.Deg2Rad,
-            -Mathf.PI / 2, Mathf.PI / 2);
+        var lat = Normalize(Mathf.Sign(pNormalized.y) * Vector3.Angle(lngVec, pNormalized) * Mathf.Deg2Rad, -Mathf.PI / 2,
+            Mathf.PI / 2);
         return (lat, lng);
     }
 
@@ -586,13 +647,14 @@ public class Sphere : MonoBehaviour {
     // 이웃 세그먼트 인덱스를 모두 반환한다.
     // 여러 세그먼트 그룹에 걸쳐야하므로, 세그먼트 서브 인덱스로 조회할 수는 없다.
     public static int[] GetNeighborsOfSegmentIndex(int n, int segmentIndex) {
-        return new int[] { };
+        return new int[] {
+        };
     }
-    
+
     public static (SegmentGroupNeighbor, int)[] GetNeighborsOfSubSegmentIndex(int n, int segmentSubIndex) {
         var (ab, t) = ConvertSubSegIndexToAbt(n, segmentSubIndex);
         if (t) {
-            return new [] {
+            return new[] {
                 // 하단 행
                 ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x, ab.y - 1), true),
                 ConvertAbtToNeighborAndLocalSegmentIndex(n, new(ab.x + 1, ab.y - 1), false),
@@ -645,13 +707,13 @@ public class Sphere : MonoBehaviour {
         Outside,
     }
 
-    enum EdgeNeighbor {
+    public enum EdgeNeighbor {
         O,
         A,
         B,
     }
 
-    enum EdgeNeighborOrigin {
+    public enum EdgeNeighborOrigin {
         O,
         A,
         B,
@@ -660,7 +722,7 @@ public class Sphere : MonoBehaviour {
         Bp,
     }
 
-    enum AxisOrientation {
+    public enum AxisOrientation {
         CounterClockwise,
         Clockwise,
     }
@@ -687,7 +749,7 @@ public class Sphere : MonoBehaviour {
         var tv = t ? 1 : 0;
         var tInvert = t == false;
         var swap = axisOrientation == AxisOrientation.Clockwise;
-        
+
         switch (edgeNeighbor) {
             case EdgeNeighbor.O:
                 switch (edgeNeighborOrigin) {
@@ -724,7 +786,7 @@ public class Sphere : MonoBehaviour {
                     case EdgeNeighborOrigin.Bp:
                         return (Swap(a + b + tv, -a + (n - 1), swap), tInvert);
                     case EdgeNeighborOrigin.O:
-                        return (Swap(- b - 1, a + b + tv, swap), tInvert);
+                        return (Swap(-b - 1, a + b + tv, swap), tInvert);
                     case EdgeNeighborOrigin.Ap:
                     case EdgeNeighborOrigin.B:
                     case EdgeNeighborOrigin.Op:
