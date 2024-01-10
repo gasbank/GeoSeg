@@ -295,186 +295,186 @@ public class GeoSegTest {
     [Test]
     public void TestDetermineEdgeNeighborOrigin() {
         // Neighbor O
-        Assert.AreEqual((Sphere.EdgeNeighbor.O, Sphere.EdgeNeighborOrigin.Op, Sphere.AxisOrientation.CW),
-            Sphere.DetermineCoordinate(new[] {
+        Assert.AreEqual((Sphere.EdgeNeighbor.O, Sphere.EdgeNeighborOrigin.Op, Sphere.AxisOrientation.CW), Sphere.DetermineCoordinate(
+            new[] {
                 0,
                 1,
                 2,
-            }, new[] {
+            }, Sphere.AxisOrientation.CCW, new[] {
                 30,
                 1,
                 2,
             }));
-        Assert.AreEqual((Sphere.EdgeNeighbor.O, Sphere.EdgeNeighborOrigin.Op, Sphere.AxisOrientation.CCW),
-            Sphere.DetermineCoordinate(new[] {
+        Assert.AreEqual((Sphere.EdgeNeighbor.O, Sphere.EdgeNeighborOrigin.Op, Sphere.AxisOrientation.CCW), Sphere.DetermineCoordinate(
+            new[] {
                 0,
                 1,
                 2,
-            }, new[] {
+            }, Sphere.AxisOrientation.CCW, new[] {
                 30,
                 2,
                 1,
             }));
-        Assert.AreEqual((Sphere.EdgeNeighbor.O, Sphere.EdgeNeighborOrigin.A, Sphere.AxisOrientation.CW),
-            Sphere.DetermineCoordinate(new[] {
+        Assert.AreEqual((Sphere.EdgeNeighbor.O, Sphere.EdgeNeighborOrigin.A, Sphere.AxisOrientation.CW), Sphere.DetermineCoordinate(
+            new[] {
                 0,
                 1,
                 2,
-            }, new[] {
+            }, Sphere.AxisOrientation.CCW, new[] {
                 1,
                 2,
                 30,
             }));
-        Assert.AreEqual((Sphere.EdgeNeighbor.O, Sphere.EdgeNeighborOrigin.A, Sphere.AxisOrientation.CCW),
-            Sphere.DetermineCoordinate(new[] {
+        Assert.AreEqual((Sphere.EdgeNeighbor.O, Sphere.EdgeNeighborOrigin.A, Sphere.AxisOrientation.CCW), Sphere.DetermineCoordinate(
+            new[] {
                 0,
                 1,
                 2,
-            }, new[] {
+            }, Sphere.AxisOrientation.CCW, new[] {
                 1,
                 30,
                 2,
             }));
-        Assert.AreEqual((Sphere.EdgeNeighbor.O, Sphere.EdgeNeighborOrigin.B, Sphere.AxisOrientation.CCW),
-            Sphere.DetermineCoordinate(new[] {
+        Assert.AreEqual((Sphere.EdgeNeighbor.O, Sphere.EdgeNeighborOrigin.B, Sphere.AxisOrientation.CCW), Sphere.DetermineCoordinate(
+            new[] {
                 0,
                 1,
                 2,
-            }, new[] {
+            }, Sphere.AxisOrientation.CCW, new[] {
                 2,
                 1,
                 30,
             }));
-        Assert.AreEqual((Sphere.EdgeNeighbor.O, Sphere.EdgeNeighborOrigin.B, Sphere.AxisOrientation.CW),
-            Sphere.DetermineCoordinate(new[] {
+        Assert.AreEqual((Sphere.EdgeNeighbor.O, Sphere.EdgeNeighborOrigin.B, Sphere.AxisOrientation.CW), Sphere.DetermineCoordinate(
+            new[] {
                 0,
                 1,
                 2,
-            }, new[] {
+            }, Sphere.AxisOrientation.CCW, new[] {
                 2,
                 30,
                 1,
             }));
-        
+
         // Neighbor A
-        Assert.AreEqual((Sphere.EdgeNeighbor.A, Sphere.EdgeNeighborOrigin.O, Sphere.AxisOrientation.CW),
-            Sphere.DetermineCoordinate(new[] {
+        Assert.AreEqual((Sphere.EdgeNeighbor.A, Sphere.EdgeNeighborOrigin.O, Sphere.AxisOrientation.CW), Sphere.DetermineCoordinate(
+            new[] {
                 0,
                 1,
                 2,
-            }, new[] {
+            }, Sphere.AxisOrientation.CCW, new[] {
                 0,
                 20,
                 2,
             }));
-        Assert.AreEqual((Sphere.EdgeNeighbor.A, Sphere.EdgeNeighborOrigin.O, Sphere.AxisOrientation.CCW),
-            Sphere.DetermineCoordinate(new[] {
+        Assert.AreEqual((Sphere.EdgeNeighbor.A, Sphere.EdgeNeighborOrigin.O, Sphere.AxisOrientation.CCW), Sphere.DetermineCoordinate(
+            new[] {
                 0,
                 1,
                 2,
-            }, new[] {
+            }, Sphere.AxisOrientation.CCW, new[] {
                 0,
                 2,
                 20,
             }));
-        Assert.AreEqual((Sphere.EdgeNeighbor.A, Sphere.EdgeNeighborOrigin.Ap, Sphere.AxisOrientation.CW),
-            Sphere.DetermineCoordinate(new[] {
+        Assert.AreEqual((Sphere.EdgeNeighbor.A, Sphere.EdgeNeighborOrigin.Ap, Sphere.AxisOrientation.CW), Sphere.DetermineCoordinate(
+            new[] {
                 0,
                 1,
                 2,
-            }, new[] {
+            }, Sphere.AxisOrientation.CCW, new[] {
                 20,
                 2,
                 0,
             }));
-        Assert.AreEqual((Sphere.EdgeNeighbor.A, Sphere.EdgeNeighborOrigin.Ap, Sphere.AxisOrientation.CCW),
-            Sphere.DetermineCoordinate(new[] {
+        Assert.AreEqual((Sphere.EdgeNeighbor.A, Sphere.EdgeNeighborOrigin.Ap, Sphere.AxisOrientation.CCW), Sphere.DetermineCoordinate(
+            new[] {
                 0,
                 1,
                 2,
-            }, new[] {
+            }, Sphere.AxisOrientation.CCW, new[] {
                 20,
                 0,
                 2,
             }));
-        Assert.AreEqual((Sphere.EdgeNeighbor.A, Sphere.EdgeNeighborOrigin.B, Sphere.AxisOrientation.CCW),
-            Sphere.DetermineCoordinate(new[] {
+        Assert.AreEqual((Sphere.EdgeNeighbor.A, Sphere.EdgeNeighborOrigin.B, Sphere.AxisOrientation.CCW), Sphere.DetermineCoordinate(
+            new[] {
                 0,
                 1,
                 2,
-            }, new[] {
+            }, Sphere.AxisOrientation.CCW, new[] {
                 2,
                 20,
                 0,
             }));
-        Assert.AreEqual((Sphere.EdgeNeighbor.A, Sphere.EdgeNeighborOrigin.B, Sphere.AxisOrientation.CW),
-            Sphere.DetermineCoordinate(new[] {
+        Assert.AreEqual((Sphere.EdgeNeighbor.A, Sphere.EdgeNeighborOrigin.B, Sphere.AxisOrientation.CW), Sphere.DetermineCoordinate(
+            new[] {
                 0,
                 1,
                 2,
-            }, new[] {
+            }, Sphere.AxisOrientation.CCW, new[] {
                 2,
                 0,
                 20,
             }));
-        
+
         // Neighbor B
-        Assert.AreEqual((Sphere.EdgeNeighbor.B, Sphere.EdgeNeighborOrigin.O, Sphere.AxisOrientation.CW),
-            Sphere.DetermineCoordinate(new[] {
+        Assert.AreEqual((Sphere.EdgeNeighbor.B, Sphere.EdgeNeighborOrigin.O, Sphere.AxisOrientation.CW), Sphere.DetermineCoordinate(
+            new[] {
                 0,
                 1,
                 2,
-            }, new[] {
+            }, Sphere.AxisOrientation.CCW, new[] {
                 0,
                 1,
                 10,
             }));
-        Assert.AreEqual((Sphere.EdgeNeighbor.B, Sphere.EdgeNeighborOrigin.O, Sphere.AxisOrientation.CCW),
-            Sphere.DetermineCoordinate(new[] {
+        Assert.AreEqual((Sphere.EdgeNeighbor.B, Sphere.EdgeNeighborOrigin.O, Sphere.AxisOrientation.CCW), Sphere.DetermineCoordinate(
+            new[] {
                 0,
                 1,
                 2,
-            }, new[] {
+            }, Sphere.AxisOrientation.CCW, new[] {
                 0,
                 10,
                 1,
             }));
-        Assert.AreEqual((Sphere.EdgeNeighbor.B, Sphere.EdgeNeighborOrigin.A, Sphere.AxisOrientation.CW),
-            Sphere.DetermineCoordinate(new[] {
+        Assert.AreEqual((Sphere.EdgeNeighbor.B, Sphere.EdgeNeighborOrigin.A, Sphere.AxisOrientation.CW), Sphere.DetermineCoordinate(
+            new[] {
                 0,
                 1,
                 2,
-            }, new[] {
+            }, Sphere.AxisOrientation.CCW, new[] {
                 1,
                 10,
                 0,
             }));
-        Assert.AreEqual((Sphere.EdgeNeighbor.B, Sphere.EdgeNeighborOrigin.A, Sphere.AxisOrientation.CCW),
-            Sphere.DetermineCoordinate(new[] {
+        Assert.AreEqual((Sphere.EdgeNeighbor.B, Sphere.EdgeNeighborOrigin.A, Sphere.AxisOrientation.CCW), Sphere.DetermineCoordinate(
+            new[] {
                 0,
                 1,
                 2,
-            }, new[] {
+            }, Sphere.AxisOrientation.CCW, new[] {
                 1,
                 0,
                 10,
             }));
-        Assert.AreEqual((Sphere.EdgeNeighbor.B, Sphere.EdgeNeighborOrigin.Bp, Sphere.AxisOrientation.CCW),
-            Sphere.DetermineCoordinate(new[] {
+        Assert.AreEqual((Sphere.EdgeNeighbor.B, Sphere.EdgeNeighborOrigin.Bp, Sphere.AxisOrientation.CCW), Sphere.DetermineCoordinate(
+            new[] {
                 0,
                 1,
                 2,
-            }, new[] {
+            }, Sphere.AxisOrientation.CCW, new[] {
                 10,
                 1,
                 0,
             }));
-        Assert.AreEqual((Sphere.EdgeNeighbor.B, Sphere.EdgeNeighborOrigin.Bp, Sphere.AxisOrientation.CW),
-            Sphere.DetermineCoordinate(new[] {
+        Assert.AreEqual((Sphere.EdgeNeighbor.B, Sphere.EdgeNeighborOrigin.Bp, Sphere.AxisOrientation.CW), Sphere.DetermineCoordinate(
+            new[] {
                 0,
                 1,
                 2,
-            }, new[] {
+            }, Sphere.AxisOrientation.CCW, new[] {
                 10,
                 0,
                 1,
