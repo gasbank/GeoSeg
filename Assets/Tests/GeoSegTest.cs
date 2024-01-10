@@ -7,16 +7,16 @@ using UnityEngine.TestTools;
 
 public class GeoSegTest {
     [Test]
-    public void TestCalculateSegmentSubIndexForB() {
+    public void TestCalculateLocalSegmentIndexForB() {
         // n = 0
-        Assert.Throws<IndexOutOfRangeException>(() => Sphere.CalculateSegmentSubIndexForB(0, 0));
+        Assert.Throws<IndexOutOfRangeException>(() => Sphere.CalculateLocalSegmentIndexForB(0, 0));
 
         // n = 1
-        Assert.AreEqual(0, Sphere.CalculateSegmentSubIndexForB(1, 0));
+        Assert.AreEqual(0, Sphere.CalculateLocalSegmentIndexForB(1, 0));
 
         // n = 2
-        Assert.AreEqual(0, Sphere.CalculateSegmentSubIndexForB(2, 0));
-        Assert.AreEqual(3, Sphere.CalculateSegmentSubIndexForB(2, 1));
+        Assert.AreEqual(0, Sphere.CalculateLocalSegmentIndexForB(2, 0));
+        Assert.AreEqual(3, Sphere.CalculateLocalSegmentIndexForB(2, 1));
     }
 
     [Test]
@@ -50,40 +50,40 @@ public class GeoSegTest {
     [Test]
     public void TestConvertToAbtCoords() {
         // n = 0
-        Assert.Throws<IndexOutOfRangeException>(() => Sphere.ConvertSubSegIndexToAbt(0, 0));
+        Assert.Throws<IndexOutOfRangeException>(() => Sphere.ConvertLocalSegmentIndexToAbt(0, 0));
 
         // n = 1
-        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 0), false), Sphere.ConvertSubSegIndexToAbt(1, 0));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 0), false), Sphere.ConvertLocalSegmentIndexToAbt(1, 0));
 
         // n = 2
-        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 0), false), Sphere.ConvertSubSegIndexToAbt(2, 0));
-        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 0), true), Sphere.ConvertSubSegIndexToAbt(2, 1));
-        Assert.AreEqual(Tuple.Create(new Vector2Int(1, 0), false), Sphere.ConvertSubSegIndexToAbt(2, 2));
-        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 1), false), Sphere.ConvertSubSegIndexToAbt(2, 3));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 0), false), Sphere.ConvertLocalSegmentIndexToAbt(2, 0));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 0), true), Sphere.ConvertLocalSegmentIndexToAbt(2, 1));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(1, 0), false), Sphere.ConvertLocalSegmentIndexToAbt(2, 2));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 1), false), Sphere.ConvertLocalSegmentIndexToAbt(2, 3));
 
         // n = 3
-        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 0), false), Sphere.ConvertSubSegIndexToAbt(3, 0));
-        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 0), true), Sphere.ConvertSubSegIndexToAbt(3, 1));
-        Assert.AreEqual(Tuple.Create(new Vector2Int(1, 0), false), Sphere.ConvertSubSegIndexToAbt(3, 2));
-        Assert.AreEqual(Tuple.Create(new Vector2Int(1, 0), true), Sphere.ConvertSubSegIndexToAbt(3, 3));
-        Assert.AreEqual(Tuple.Create(new Vector2Int(2, 0), false), Sphere.ConvertSubSegIndexToAbt(3, 4));
-        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 1), false), Sphere.ConvertSubSegIndexToAbt(3, 5));
-        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 1), true), Sphere.ConvertSubSegIndexToAbt(3, 6));
-        Assert.AreEqual(Tuple.Create(new Vector2Int(1, 1), false), Sphere.ConvertSubSegIndexToAbt(3, 7));
-        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 2), false), Sphere.ConvertSubSegIndexToAbt(3, 8));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 0), false), Sphere.ConvertLocalSegmentIndexToAbt(3, 0));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 0), true), Sphere.ConvertLocalSegmentIndexToAbt(3, 1));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(1, 0), false), Sphere.ConvertLocalSegmentIndexToAbt(3, 2));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(1, 0), true), Sphere.ConvertLocalSegmentIndexToAbt(3, 3));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(2, 0), false), Sphere.ConvertLocalSegmentIndexToAbt(3, 4));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 1), false), Sphere.ConvertLocalSegmentIndexToAbt(3, 5));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 1), true), Sphere.ConvertLocalSegmentIndexToAbt(3, 6));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(1, 1), false), Sphere.ConvertLocalSegmentIndexToAbt(3, 7));
+        Assert.AreEqual(Tuple.Create(new Vector2Int(0, 2), false), Sphere.ConvertLocalSegmentIndexToAbt(3, 8));
     }
 
     [Test]
-    public void TestGetNeighborsOfSegmentSubIndex() {
+    public void TestGetInsideNeighborsOfLocalSegmentIndex() {
         // n 범위 오류
-        Assert.Catch<ArgumentOutOfRangeException>(() => Sphere.GetNeighborsOfSegmentSubIndex(0, 9));
-        Assert.Catch<ArgumentOutOfRangeException>(() => Sphere.GetNeighborsOfSegmentSubIndex(1, 9));
-        Assert.Catch<ArgumentOutOfRangeException>(() => Sphere.GetNeighborsOfSegmentSubIndex(2, 9));
-        Assert.Catch<ArgumentOutOfRangeException>(() => Sphere.GetNeighborsOfSegmentSubIndex(3, 9));
+        Assert.Catch<ArgumentOutOfRangeException>(() => Sphere.GetInsideNeighborsOfLocalSegmentIndex(0, 9));
+        Assert.Catch<ArgumentOutOfRangeException>(() => Sphere.GetInsideNeighborsOfLocalSegmentIndex(1, 9));
+        Assert.Catch<ArgumentOutOfRangeException>(() => Sphere.GetInsideNeighborsOfLocalSegmentIndex(2, 9));
+        Assert.Catch<ArgumentOutOfRangeException>(() => Sphere.GetInsideNeighborsOfLocalSegmentIndex(3, 9));
 
-        // segmentSubIndex 범위 오류
-        Assert.Catch<ArgumentOutOfRangeException>(() => Sphere.GetNeighborsOfSegmentSubIndex(4, -1));
-        Assert.Catch<ArgumentOutOfRangeException>(() => Sphere.GetNeighborsOfSegmentSubIndex(4, 4 * 4));
+        // localSegmentIndex 범위 오류
+        Assert.Catch<ArgumentOutOfRangeException>(() => Sphere.GetInsideNeighborsOfLocalSegmentIndex(4, -1));
+        Assert.Catch<ArgumentOutOfRangeException>(() => Sphere.GetInsideNeighborsOfLocalSegmentIndex(4, 4 * 4));
 
         Assert.AreEqual(new[] {
             1,
@@ -98,7 +98,7 @@ public class GeoSegTest {
             12,
             13,
             14,
-        }, Sphere.GetNeighborsOfSegmentSubIndex(4, 9));
+        }, Sphere.GetInsideNeighborsOfLocalSegmentIndex(4, 9));
 
         Assert.AreEqual(new[] {
             3,
@@ -113,7 +113,7 @@ public class GeoSegTest {
             26,
             27,
             28,
-        }, Sphere.GetNeighborsOfSegmentSubIndex(7, 16));
+        }, Sphere.GetInsideNeighborsOfLocalSegmentIndex(7, 16));
     }
 
     [Test]
@@ -252,7 +252,7 @@ public class GeoSegTest {
     }
 
     [Test]
-    public void TestGetNeighborsOfSubSegmentIndex() {
+    public void TestGetNeighborsOfLocalSegmentIndex() {
         Assert.AreEqual(new (Sphere.SegmentGroupNeighbor, int)[] {
             (Sphere.SegmentGroupNeighbor.Inside, 16),
             (Sphere.SegmentGroupNeighbor.Inside, 17),
@@ -266,7 +266,7 @@ public class GeoSegTest {
             (Sphere.SegmentGroupNeighbor.Inside, 35),
             (Sphere.SegmentGroupNeighbor.Inside, 36),
             (Sphere.SegmentGroupNeighbor.Inside, 37),
-        }, Sphere.GetNeighborsOfSubSegmentIndex(7, 27));
+        }, Sphere.GetNeighborsOfLocalSegmentIndex(7, 27));
     }
 
     [Test]

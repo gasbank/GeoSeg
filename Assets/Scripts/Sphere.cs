@@ -397,15 +397,15 @@ public class Sphere : MonoBehaviour {
 
                 var (abCoords, top) = CalculateAbCoords(triList[0], triList[1], triList[2], intersectPosCoords);
 
-                var segmentSubIndex = ConvertToSegmentSubIndex(SubdivisionCount, abCoords.x, abCoords.y, top);
+                var localSegmentIndex = ConvertToLocalSegmentIndex(SubdivisionCount, abCoords.x, abCoords.y, top);
                 var segmentIndex = ConvertToSegmentIndex(intersectedSegmentGroupIndex, SubdivisionCount, abCoords.x, abCoords.y, top);
 
                 centerPos.position = CalculateSegmentCenter(SubdivisionCount, segmentIndex);
 
                 var neighborPosListIndex = 0;
-                foreach (var (neighbor, neighborSegSubIndex) in GetNeighborsOfSubSegmentIndex(SubdivisionCount, segmentSubIndex)) {
+                foreach (var (neighbor, neighborLocalSegIndex) in GetNeighborsOfLocalSegmentIndex(SubdivisionCount, localSegmentIndex)) {
                     if (neighbor == SegmentGroupNeighbor.Inside) {
-                        var neighborSegmentIndex = ConvertToSegmentIndex(intersectedSegmentGroupIndex, neighborSegSubIndex);
+                        var neighborSegmentIndex = ConvertToSegmentIndex(intersectedSegmentGroupIndex, neighborLocalSegIndex);
                         neighborPosList[neighborPosListIndex].position =
                             CalculateSegmentCenter(SubdivisionCount, neighborSegmentIndex);
                         neighborPosList[neighborPosListIndex].gameObject.SetActive(true);
@@ -426,10 +426,10 @@ public class Sphere : MonoBehaviour {
 
                 OverlayText = $"Intersection Lat: {lat * Mathf.Rad2Deg}°, Lng: {lng * Mathf.Rad2Deg}°\n"
                               + $"Segment Group: {intersectedSegmentGroupIndex} ABT: {(abCoords, top)}\n"
-                              + $" * Segment sub index {segmentSubIndex}\n"
+                              + $" * Local segment index {localSegmentIndex}\n"
                               + $" * Segment index {segmentIndex}\n"
                               + "-----------\n"
-                              + $" * ABT (check): {ConvertSubSegIndexToAbt(SubdivisionCount, segmentSubIndex)}\n"
+                              + $" * ABT (check): {ConvertLocalSegmentIndexToAbt(SubdivisionCount, localSegmentIndex)}\n"
                               + $" * Segment Group & ABT (check): {SplitSegIndexToSegGroupAndAbt(SubdivisionCount, segmentIndex)}\n"
                               + "-----------\n"
                               + $"Segment Center Lat: {centerLat * Mathf.Rad2Deg}°, Lng: {centerLng * Mathf.Rad2Deg}°\n"
@@ -442,17 +442,17 @@ public class Sphere : MonoBehaviour {
     }
 
     // AB 좌표의 B 좌표로 시작되는 세그먼트 서브 인덱스의 시작값을 계산한다.
-    public static int CalculateSegmentSubIndexForB(int n, int b) {
+    public static int CalculateLocalSegmentIndexForB(int n, int b) {
         if (n <= 0) {
             throw new IndexOutOfRangeException(nameof(n));
         }
 
-        return ConvertToSegmentSubIndex(n, 0, b, false);
+        return ConvertToLocalSegmentIndex(n, 0, b, false);
     }
 
     // 세그먼트 서브 인덱스가 주어졌을 때, B 좌표를 이진 탐색 방법으로 찾아낸다.
     // 단, 찾아낸 B 좌표는 b0 ~ b1 범위에 있다고 가정한다.
-    public static int SearchForB(int n, int b0, int b1, int segmentSubIndex) {
+    public static int SearchForB(int n, int b0, int b1, int localSegmentIndex) {
         if (n <= 0) {
             throw new IndexOutOfRangeException(nameof(n));
         }
@@ -469,24 +469,24 @@ public class Sphere : MonoBehaviour {
             throw new IndexOutOfRangeException($"{nameof(b0)}, {nameof(b1)}");
         }
 
-        var subIndex0 = CalculateSegmentSubIndexForB(n, b0);
-        var subIndex1 = CalculateSegmentSubIndexForB(n, b1);
+        var localIndex0 = CalculateLocalSegmentIndexForB(n, b0);
+        var localIndex1 = CalculateLocalSegmentIndexForB(n, b1);
 
-        if (subIndex0 > segmentSubIndex || subIndex1 < segmentSubIndex) {
-            throw new IndexOutOfRangeException(nameof(segmentSubIndex));
+        if (localIndex0 > localSegmentIndex || localIndex1 < localSegmentIndex) {
+            throw new IndexOutOfRangeException(nameof(localSegmentIndex));
         }
 
-        if (subIndex0 == segmentSubIndex) {
+        if (localIndex0 == localSegmentIndex) {
             return b0;
         }
 
-        if (subIndex1 == segmentSubIndex) {
+        if (localIndex1 == localSegmentIndex) {
             return b1;
         }
 
         while (b1 - b0 > 1) {
             var bMid = (b0 + b1) / 2;
-            switch (CalculateSegmentSubIndexForB(n, bMid) - segmentSubIndex) {
+            switch (CalculateLocalSegmentIndexForB(n, bMid) - localSegmentIndex) {
                 case < 0:
                     b0 = bMid;
                     continue;
@@ -501,30 +501,30 @@ public class Sphere : MonoBehaviour {
         return b0;
     }
 
-    public static Tuple<Vector2Int, bool> ConvertSubSegIndexToAbt(int n, int segmentSubIndex) {
+    public static Tuple<Vector2Int, bool> ConvertLocalSegmentIndexToAbt(int n, int localSegmentIndex) {
         if (n <= 0) {
             throw new IndexOutOfRangeException(nameof(n));
         }
 
-        var b = SearchForB(n, 0, n - 1, segmentSubIndex);
-        var a = (segmentSubIndex - CalculateSegmentSubIndexForB(n, b)) / 2;
-        return new(new(a, b), (b % 2 == 0 && segmentSubIndex % 2 == 0 || b % 2 == 1 && segmentSubIndex % 2 == 1) == false);
+        var b = SearchForB(n, 0, n - 1, localSegmentIndex);
+        var a = (localSegmentIndex - CalculateLocalSegmentIndexForB(n, b)) / 2;
+        return new(new(a, b), (b % 2 == 0 && localSegmentIndex % 2 == 0 || b % 2 == 1 && localSegmentIndex % 2 == 1) == false);
     }
 
     // 32비트 중 MSB 1비트는 부호 비트로 남겨두고, 세그먼트 그룹 인덱스는 총 0~19 범위이므로 5비트가 필요하다.
-    // 즉 32비트에서 1비트+5비트를 제외한 비트를 segment sub index 공간으로 쓸 수 있다.
-    const int SegmentSubIndexBitCount = 32 - 1 - 5;
+    // 즉 32비트에서 1비트+5비트를 제외한 비트를 local segment index 공간으로 쓸 수 있다.
+    const int LocalSegmentIndexBitCount = 32 - 1 - 5;
 
-    static (int, int) SplitSegIndexToSegGroupAndSegmentSubIndex(int n, int segmentIndex) {
-        var segmentGroupIndex = segmentIndex >> SegmentSubIndexBitCount;
-        var segSubIndex = segmentIndex & ((1 << SegmentSubIndexBitCount) - 1);
-        return (segmentGroupIndex, segSubIndex);
+    static (int, int) SplitSegIndexToSegGroupAndLocalSegmentIndex(int n, int segmentIndex) {
+        var segmentGroupIndex = segmentIndex >> LocalSegmentIndexBitCount;
+        var localSegIndex = segmentIndex & ((1 << LocalSegmentIndexBitCount) - 1);
+        return (segmentGroupIndex, localSegIndex);
     }
 
     // Seg Index를 Seg Group & ABT로 변환해서 반환
     static Tuple<int, Vector2Int, bool> SplitSegIndexToSegGroupAndAbt(int n, int segmentIndex) {
-        var (segmentGroupIndex, segSubIndex) = SplitSegIndexToSegGroupAndSegmentSubIndex(n, segmentIndex);
-        var (abCoords, top) = ConvertSubSegIndexToAbt(n, segSubIndex);
+        var (segmentGroupIndex, localSegIndex) = SplitSegIndexToSegGroupAndLocalSegmentIndex(n, segmentIndex);
+        var (abCoords, top) = ConvertLocalSegmentIndexToAbt(n, localSegIndex);
         return Tuple.Create(segmentGroupIndex, abCoords, top);
     }
 
@@ -546,7 +546,7 @@ public class Sphere : MonoBehaviour {
     }
 
     // n(분할 횟수), AB 좌표, top여부 세 개를 조합해 세그먼트 그룹 내 인덱스를 계산하여 반환한다.
-    static int ConvertToSegmentSubIndex(int n, int a, int b, bool top) {
+    static int ConvertToLocalSegmentIndex(int n, int a, int b, bool top) {
         if (n <= 0) {
             throw new ArgumentOutOfRangeException(nameof(n));
         }
@@ -566,14 +566,14 @@ public class Sphere : MonoBehaviour {
 
     // 세그먼트 그룹 인덱스, n(분할 횟수), AB 좌표, top여부 네 개를 조합 해 전역 세그먼트 인덱스를 계산하여 반환한다.
     static int ConvertToSegmentIndex(int segmentGroupIndex, int n, int a, int b, bool top) {
-        var segmentSubIndex = ConvertToSegmentSubIndex(n, a, b, top);
+        var localSegmentIndex = ConvertToLocalSegmentIndex(n, a, b, top);
 
-        return ConvertToSegmentIndex(segmentGroupIndex, segmentSubIndex);
+        return ConvertToSegmentIndex(segmentGroupIndex, localSegmentIndex);
     }
 
-    static int ConvertToSegmentIndex(int segmentGroupIndex, int segmentSubIndex) {
+    static int ConvertToSegmentIndex(int segmentGroupIndex, int localSegmentIndex) {
 
-        return (segmentGroupIndex << SegmentSubIndexBitCount) | segmentSubIndex;
+        return (segmentGroupIndex << LocalSegmentIndexBitCount) | localSegmentIndex;
     }
 
     // 세 꼭지점(ip0, ip1, ip2)으로 정의되는 삼각형 내의 특정 지점(intersect)를 AB 좌표, top여부로 변환하여 반환한다.
@@ -625,63 +625,62 @@ public class Sphere : MonoBehaviour {
 
     // 세그먼트 그룹 내에서 완전히 모든 이웃 세그먼트가 찾아지는 경우에 대해
     // 이웃 세그먼트 서브 인덱스를 모두 반환한다.
-    public static int[] GetNeighborsOfSegmentSubIndex(int n, int segmentSubIndex) {
+    public static int[] GetInsideNeighborsOfLocalSegmentIndex(int n, int localSegmentIndex) {
         if (n < 4) {
             throw new ArgumentOutOfRangeException(nameof(n));
         }
 
-        if (segmentSubIndex < 0 || segmentSubIndex >= n * n) {
-            throw new ArgumentOutOfRangeException(nameof(segmentSubIndex));
+        if (localSegmentIndex < 0 || localSegmentIndex >= n * n) {
+            throw new ArgumentOutOfRangeException(nameof(localSegmentIndex));
         }
 
-        var (ab, t) = ConvertSubSegIndexToAbt(n, segmentSubIndex);
+        var (ab, t) = ConvertLocalSegmentIndexToAbt(n, localSegmentIndex);
 
         List<int> ret = new();
 
         if (t == false) {
-            ret.Add(ConvertToSegmentSubIndex(n, ab.x - 1, ab.y - 1, true));
-            ret.Add(ConvertToSegmentSubIndex(n, ab.x, ab.y - 1, false));
+            ret.Add(ConvertToLocalSegmentIndex(n, ab.x - 1, ab.y - 1, true));
+            ret.Add(ConvertToLocalSegmentIndex(n, ab.x, ab.y - 1, false));
         }
 
-        ret.Add(ConvertToSegmentSubIndex(n, ab.x, ab.y - 1, true));
+        ret.Add(ConvertToLocalSegmentIndex(n, ab.x, ab.y - 1, true));
 
-        ret.Add(ConvertToSegmentSubIndex(n, ab.x + 1, ab.y - 1, false));
-        ret.Add(ConvertToSegmentSubIndex(n, ab.x + 1, ab.y - 1, true));
+        ret.Add(ConvertToLocalSegmentIndex(n, ab.x + 1, ab.y - 1, false));
+        ret.Add(ConvertToLocalSegmentIndex(n, ab.x + 1, ab.y - 1, true));
 
         if (t == false) {
-            ret.Add(ConvertToSegmentSubIndex(n, ab.x - 1, ab.y, false));
+            ret.Add(ConvertToLocalSegmentIndex(n, ab.x - 1, ab.y, false));
         }
 
-        ret.Add(ConvertToSegmentSubIndex(n, ab.x - 1, ab.y, true));
+        ret.Add(ConvertToLocalSegmentIndex(n, ab.x - 1, ab.y, true));
 
-        ret.Add(ConvertToSegmentSubIndex(n, ab.x, ab.y, t == false));
+        ret.Add(ConvertToLocalSegmentIndex(n, ab.x, ab.y, t == false));
 
-        ret.Add(ConvertToSegmentSubIndex(n, ab.x + 1, ab.y, false));
+        ret.Add(ConvertToLocalSegmentIndex(n, ab.x + 1, ab.y, false));
         if (t) {
-            ret.Add(ConvertToSegmentSubIndex(n, ab.x + 1, ab.y, true));
+            ret.Add(ConvertToLocalSegmentIndex(n, ab.x + 1, ab.y, true));
         }
 
-        ret.Add(ConvertToSegmentSubIndex(n, ab.x - 1, ab.y + 1, false));
-        ret.Add(ConvertToSegmentSubIndex(n, ab.x - 1, ab.y + 1, true));
+        ret.Add(ConvertToLocalSegmentIndex(n, ab.x - 1, ab.y + 1, false));
+        ret.Add(ConvertToLocalSegmentIndex(n, ab.x - 1, ab.y + 1, true));
 
-        ret.Add(ConvertToSegmentSubIndex(n, ab.x, ab.y + 1, false));
+        ret.Add(ConvertToLocalSegmentIndex(n, ab.x, ab.y + 1, false));
         if (t) {
-            ret.Add(ConvertToSegmentSubIndex(n, ab.x, ab.y + 1, true));
-            ret.Add(ConvertToSegmentSubIndex(n, ab.x + 1, ab.y + 1, false));
+            ret.Add(ConvertToLocalSegmentIndex(n, ab.x, ab.y + 1, true));
+            ret.Add(ConvertToLocalSegmentIndex(n, ab.x + 1, ab.y + 1, false));
         }
 
         return ret.ToArray();
     }
 
-    // 세그먼트 그룹 내에서 완전히 모든 이웃 세그먼트가 찾아지자 않고,
+    // 세그먼트 그룹 내에서 완전히 모든 이웃 세그먼트가 찾아지지 않고,
     // 세그먼트 그룹 경계를 벗어나는 이웃이 포함되는 경우에 
     // 이웃 세그먼트 인덱스를 모두 반환한다.
     // 여러 세그먼트 그룹에 걸쳐야하므로, 세그먼트 서브 인덱스로 조회할 수는 없다.
     public static int[] GetNeighborsOfSegmentIndex(int n, int segmentIndex) {
-        var (segGroupIndex, segmentSubIndex) = SplitSegIndexToSegGroupAndSegmentSubIndex(n, segmentIndex);
-        //var (segGroupIndex, ab, t) = SplitSegIndexToSegGroupAndAbt(n, segmentIndex);
+        var (segGroupIndex, localSegmentIndex) = SplitSegIndexToSegGroupAndLocalSegmentIndex(n, segmentIndex);
 
-        foreach (var (neighbor, neighborSubIndex) in GetNeighborsOfSubSegmentIndex(n, segmentSubIndex)) {
+        foreach (var (neighbor, neighborLocalSegIndex) in GetNeighborsOfLocalSegmentIndex(n, localSegmentIndex)) {
             switch (neighbor) {
                 case SegmentGroupNeighbor.Inside:
                     break;
@@ -715,8 +714,8 @@ public class Sphere : MonoBehaviour {
         };
     }
 
-    public static (SegmentGroupNeighbor, int)[] GetNeighborsOfSubSegmentIndex(int n, int segmentSubIndex) {
-        var (ab, t) = ConvertSubSegIndexToAbt(n, segmentSubIndex);
+    public static (SegmentGroupNeighbor, int)[] GetNeighborsOfLocalSegmentIndex(int n, int localSegmentIndex) {
+        var (ab, t) = ConvertLocalSegmentIndexToAbt(n, localSegmentIndex);
         if (t) {
             return new[] {
                 // 하단 행
@@ -1031,7 +1030,7 @@ public class Sphere : MonoBehaviour {
 
     static (SegmentGroupNeighbor, int) ConvertAbtToNeighborAndLocalSegmentIndex(int n, Vector2Int ab, bool t) {
         var (neighbor, abNeighbor, tNeighbor) = ConvertAbtToNeighborAndAbt(n, ab, t);
-        return (neighbor, ConvertToSegmentSubIndex(n, abNeighbor.x, abNeighbor.y, tNeighbor));
+        return (neighbor, ConvertToLocalSegmentIndex(n, abNeighbor.x, abNeighbor.y, tNeighbor));
     }
 #endif
 
