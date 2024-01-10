@@ -16,7 +16,7 @@ public class Sphere : MonoBehaviour {
     public Transform[] neighborPosList;
     public int intersectedSegmentGroupIndex = -1;
 
-    public static string overlayText;
+    public static string OverlayText;
 
     // 황금비를 이루는 직사각형의 너비와 높이 계산
     // (직사각형의 중심에서 각 꼭지점까지의 거리는 1)
@@ -25,7 +25,7 @@ public class Sphere : MonoBehaviour {
     static readonly float Hh = 2 / Mathf.Sqrt(10 + 2 * Mathf.Sqrt(5));
     static readonly float Wh = Hh * (1 + Mathf.Sqrt(5)) / 2;
 
-    static readonly int[][] edgesPerFaces = {
+    static readonly int[][] VertIndexPerFaces = {
         // Face 0
         new[] {
             0,
@@ -148,7 +148,9 @@ public class Sphere : MonoBehaviour {
         },
     };
 
-    static readonly Vector3[] vertices = {
+    static readonly int[][] NeighborFaceIndices = BuildFaceNeighbors();
+
+    static readonly Vector3[] Vertices = {
         new(0, -Hh, -Wh),
         new(0, +Hh, -Wh),
         new(0, +Hh, +Wh),
@@ -167,12 +169,12 @@ public class Sphere : MonoBehaviour {
     const int RenderingSubdivisionCountLimit = 128;
 
     void Start() {
-        var mesh = new Mesh { vertices = vertices };
+        var mesh = new Mesh { vertices = Vertices };
 
-        var triangles = edgesPerFaces.SelectMany(e => e).ToArray();
+        var triangles = VertIndexPerFaces.SelectMany(e => e).ToArray();
 
         mesh.triangles = triangles;
-        mesh.normals = vertices;
+        mesh.normals = Vertices;
         mesh.RecalculateNormals();
 
         // foreach (var v in vertices) {
@@ -181,21 +183,15 @@ public class Sphere : MonoBehaviour {
 
         meshFilter.mesh = mesh;
 
-        for (var index = 0; index < edgesPerFaces.Length; index++) {
-            var edgesPerFace = edgesPerFaces[index];
+        for (var index = 0; index < VertIndexPerFaces.Length; index++) {
+            var edgesPerFace = VertIndexPerFaces[index];
             var go = new GameObject();
             var mf = go.AddComponent<MeshFilter>();
             var segmentGroupTri = new[] {
-                vertices[edgesPerFace[0]],
-                vertices[edgesPerFace[1]],
-                vertices[edgesPerFace[2]],
+                Vertices[edgesPerFace[0]],
+                Vertices[edgesPerFace[1]],
+                Vertices[edgesPerFace[2]],
             };
-
-#pragma warning disable CS0162
-            if (SubdivisionCount > RenderingSubdivisionCountLimit) {
-                Debug.LogWarning("Subdivision count is too high for rendering...");
-            }
-#pragma warning restore CS0162
 
             mf.mesh = CreateSubdividedTri(segmentGroupTri, Mathf.Min(SubdivisionCount, RenderingSubdivisionCountLimit));
             var mr = go.AddComponent<MeshRenderer>();
@@ -208,13 +204,54 @@ public class Sphere : MonoBehaviour {
             go.name = $"Segment Group {index}";
         }
     }
+    static int[][] BuildFaceNeighbors() {
+        List<int[]> neighbors = new();
+        for (var i = 0; i < VertIndexPerFaces.Length; i++) {
+            var neighborO = -1;
+            var neighborA = -1;
+            var neighborB = -1;
+            var ei = VertIndexPerFaces[i];
+            for (var j = 0; j < VertIndexPerFaces.Length; j++) {
+                // 자기 자신은 당연히 이웃이 될 수 없다.
+                if (i == j) {
+                    continue;
+                }
+                
+                var ej = VertIndexPerFaces[j];
+                
+                if (ej.Contains(ei[1]) && ej.Contains(ei[2])) {
+                    // 원점에서 가장 멀게 맞닿은 면은 N_O다.
+                    neighborO = j;
+                } else if (ej.Contains(ei[0]) && ej.Contains(ei[2])) {
+                    // B축에 맞닿은 면은 N_A다.
+                    neighborA = j;
+                } else if (ej.Contains(ei[0]) && ej.Contains(ei[1])) {
+                    // A축에 맞닿은 면은 N_B다.
+                    neighborB = j;
+                }
+            }
+
+            if (neighborO < 0 || neighborA < 0 || neighborB < 0) {
+                throw new("Logic Error");
+            }
+            
+            // 면의 이웃 인덱스는 N_O, N_A, N_B 순으로 넣는다.
+            neighbors.Add(new[] {
+                neighborO,
+                neighborA,
+                neighborB,
+            });
+        }
+
+        return neighbors.ToArray();
+    }
 
 #if UNITY_EDITOR
     void OnDrawGizmos() {
         Gizmos.color = Color.magenta;
 
-        for (var index = 0; index < vertices.Length; index++) {
-            var v = vertices[index];
+        for (var index = 0; index < Vertices.Length; index++) {
+            var v = Vertices[index];
             Gizmos.DrawSphere(v, 0.025f);
             Handles.Label(v, $"vt{index}");
         }
@@ -231,9 +268,9 @@ public class Sphere : MonoBehaviour {
         List<Vector3[]> segmentGroupTriList = new();
 
 
-        for (var index = 0; index < edgesPerFaces.Length; index++) {
-            var e = edgesPerFaces[index];
-            var edgeVertices = e.Select(ee => vertices[ee]).ToArray();
+        for (var index = 0; index < VertIndexPerFaces.Length; index++) {
+            var e = VertIndexPerFaces[index];
+            var edgeVertices = e.Select(ee => Vertices[ee]).ToArray();
             Gizmos.DrawLineStrip(edgeVertices, true);
 
             var center = edgeVertices.Aggregate(Vector3.zero, (s, v) => s + v) / edgeVertices.Length;
@@ -294,8 +331,13 @@ public class Sphere : MonoBehaviour {
                 }
 
                 var (centerLat, centerLng) = CalculateSegmentCenterLatLng(SubdivisionCount, segmentIndex);
+                
+                // Neighbor (depth=1)
+                var neighborFaces = NeighborFaceIndices[intersectedSegmentGroupIndex];
+                // Neighbor (depth=2)
+                var neighborFaces2 = neighborFaces.Select(e => NeighborFaceIndices[e]).ToArray();
 
-                overlayText = $"Intersection Lat: {lat * Mathf.Rad2Deg}°, Lng: {lng * Mathf.Rad2Deg}°\n"
+                OverlayText = $"Intersection Lat: {lat * Mathf.Rad2Deg}°, Lng: {lng * Mathf.Rad2Deg}°\n"
                               + $"Segment Group: {intersectedSegmentGroupIndex} ABT: {(abCoords, top)}\n"
                               + $" * Segment sub index {segmentSubIndex}\n"
                               + $" * Segment index {segmentIndex}\n"
@@ -303,9 +345,12 @@ public class Sphere : MonoBehaviour {
                               + $" * ABT (check): {ConvertSubSegIndexToAbt(SubdivisionCount, segmentSubIndex)}\n"
                               + $" * Segment Group & ABT (check): {ConvertSegIndexToSegGroupAndAbt(SubdivisionCount, segmentIndex)}\n"
                               + "-----------\n"
-                              + $"Segment Center Lat: {centerLat * Mathf.Rad2Deg}°, Lng: {centerLng * Mathf.Rad2Deg}°";
+                              + $"Segment Center Lat: {centerLat * Mathf.Rad2Deg}°, Lng: {centerLng * Mathf.Rad2Deg}°\n"
+                              + $"Neighbor Faces: {neighborFaces[0]}, {neighborFaces[1]}, {neighborFaces[2]}\n"
+                              + $"    (depth 2) : ({neighborFaces2[0][1]}, {neighborFaces2[0][2]}), ({neighborFaces2[1][0]}, {neighborFaces2[1][2]}), ({neighborFaces2[2][0]}, {neighborFaces2[2][1]})";
             } else {
-                Debug.Log($"?! Not intersected !?");
+                Debug.Log("?! Not intersected !?");
+                OverlayText = "?! Not intersected !?";
             }
         }
     }
@@ -395,7 +440,7 @@ public class Sphere : MonoBehaviour {
     // Seg Index의 중심 좌표를 계산해서 반환
     static Vector3 CalculateSegmentCenter(int n, int segmentIndex) {
         var (segGroupIndex, ab, t) = ConvertSegIndexToSegGroupAndAbt(n, segmentIndex);
-        var segGroupVerts = edgesPerFaces[segGroupIndex].Select(e => vertices[e]).ToArray();
+        var segGroupVerts = VertIndexPerFaces[segGroupIndex].Select(e => Vertices[e]).ToArray();
         var axisA = (segGroupVerts[1] - segGroupVerts[0]) / n;
         var axisB = (segGroupVerts[2] - segGroupVerts[0]) / n;
 
@@ -600,16 +645,95 @@ public class Sphere : MonoBehaviour {
         Outside,
     }
 
-    public static (Vector2Int, bool) ConvertCoordinateToO(int n, Vector2Int ab, bool t) {
-        return (new(n - 1 - ab.x, n - 1 - ab.y), t == false);
+    enum EdgeNeighbor {
+        O,
+        A,
+        B,
     }
 
-    public static (Vector2Int, bool) ConvertCoordinateToA(int n, Vector2Int ab, bool t) {
-        return (new(-ab.x - 1, ab.x + ab.y + (t ? 1 : 0)), t == false);
+    enum EdgeNeighborOrigin {
+        O,
+        A,
+        B,
+        Op,
+        Ap,
+        Bp,
     }
 
-    public static (Vector2Int, bool) ConvertCoordinateToB(int n, Vector2Int ab, bool t) {
-        return (new(ab.x + ab.y + (t ? 1 : 0), -ab.y - 1), t == false);
+    enum AxisOrientation {
+        CounterClockwise,
+        Clockwise,
+    }
+
+    static (Vector2Int, bool) ConvertCoordinateToO(int n, Vector2Int ab, bool t) {
+        return ConvertCoordinate(EdgeNeighbor.O, EdgeNeighborOrigin.Op, AxisOrientation.CounterClockwise, n, ab, t);
+    }
+
+    static (Vector2Int, bool) ConvertCoordinateToA(int n, Vector2Int ab, bool t) {
+        return ConvertCoordinate(EdgeNeighbor.A, EdgeNeighborOrigin.O, AxisOrientation.Clockwise, n, ab, t);
+    }
+
+    static (Vector2Int, bool) ConvertCoordinateToB(int n, Vector2Int ab, bool t) {
+        return ConvertCoordinate(EdgeNeighbor.B, EdgeNeighborOrigin.O, AxisOrientation.Clockwise, n, ab, t);
+    }
+
+    static Vector2Int Swap(int a, int b, bool swap) {
+        return swap == false ? new(a, b) : new(b, a);
+    }
+
+    static (Vector2Int, bool) ConvertCoordinate(EdgeNeighbor edgeNeighbor, EdgeNeighborOrigin edgeNeighborOrigin,
+        AxisOrientation axisOrientation, int n, Vector2Int ab, bool t) {
+        var (a, b) = (ab.x, ab.y);
+        var tv = t ? 1 : 0;
+        var tInvert = t == false;
+        var swap = axisOrientation == AxisOrientation.Clockwise;
+        
+        switch (edgeNeighbor) {
+            case EdgeNeighbor.O:
+                switch (edgeNeighborOrigin) {
+                    case EdgeNeighborOrigin.A:
+                        return (Swap(a + b + tv - (n - 1) - 1, -a + (n - 1), swap), tInvert);
+                    case EdgeNeighborOrigin.B:
+                        return (Swap(-b + (n - 1), a + b + tv - (n - 1) - 1, swap), tInvert);
+                    case EdgeNeighborOrigin.Op:
+                        return (Swap(-a + (n - 1), -b + (n - 1), swap), tInvert);
+                    case EdgeNeighborOrigin.O:
+                    case EdgeNeighborOrigin.Ap:
+                    case EdgeNeighborOrigin.Bp:
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(edgeNeighborOrigin), edgeNeighborOrigin, null);
+                }
+            case EdgeNeighbor.A:
+                switch (edgeNeighborOrigin) {
+                    case EdgeNeighborOrigin.Ap:
+                        return (Swap(-b + (n - 1), a + b + tv, swap), tInvert);
+                    case EdgeNeighborOrigin.B:
+                        return (Swap(-a - 1, -b + (n - 1), swap), tInvert);
+                    case EdgeNeighborOrigin.O:
+                        return (Swap(a + b + tv, -a - 1, swap), tInvert);
+                    case EdgeNeighborOrigin.A:
+                    case EdgeNeighborOrigin.Bp:
+                    case EdgeNeighborOrigin.Op:
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(edgeNeighborOrigin), edgeNeighborOrigin, null);
+                }
+            case EdgeNeighbor.B:
+                switch (edgeNeighborOrigin) {
+                    case EdgeNeighborOrigin.A:
+                        return (Swap(-a + (n - 1), -b - 1, swap), tInvert);
+                    case EdgeNeighborOrigin.Bp:
+                        return (Swap(a + b + tv, -a + (n - 1), swap), tInvert);
+                    case EdgeNeighborOrigin.O:
+                        return (Swap(- b - 1, a + b + tv, swap), tInvert);
+                    case EdgeNeighborOrigin.Ap:
+                    case EdgeNeighborOrigin.B:
+                    case EdgeNeighborOrigin.Op:
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(edgeNeighborOrigin), edgeNeighborOrigin, null);
+                }
+            default:
+                throw new ArgumentOutOfRangeException(nameof(edgeNeighbor), edgeNeighbor, null);
+        }
     }
 
     public enum ParallelogramGroup {
@@ -778,7 +902,7 @@ public class Sphere : MonoBehaviour {
         throw new();
     }
 
-    public static (SegmentGroupNeighbor, int) ConvertAbtToNeighborAndLocalSegmentIndex(int n, Vector2Int ab, bool t) {
+    static (SegmentGroupNeighbor, int) ConvertAbtToNeighborAndLocalSegmentIndex(int n, Vector2Int ab, bool t) {
         var (neighbor, abNeighbor, tNeighbor) = ConvertAbtToNeighborAndAbt(n, ab, t);
         return (neighbor, ConvertToSegmentSubIndex(n, abNeighbor.x, abNeighbor.y, tNeighbor));
     }
@@ -843,8 +967,5 @@ public class Sphere : MonoBehaviour {
         mesh.SetTriangles(triangles.Skip(3 * (totalFCount - 1)).Take(3).ToList(), 3);
 
         return mesh;
-    }
-
-    void Update() {
     }
 }
