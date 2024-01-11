@@ -685,6 +685,49 @@ public class Sphere : MonoBehaviour {
         return ret.ToArray();
     }
 
+    static (int, EdgeNeighbor, EdgeNeighborOrigin, AxisOrientation) GetNeighborInfoOfSegGroupIndex(int segGroupIndex,
+        SegmentGroupNeighbor neighbor) {
+        if (segGroupIndex is < 0 or >= 20) {
+            throw new ArgumentOutOfRangeException(nameof(segGroupIndex), segGroupIndex, null);
+        }
+
+        switch (neighbor) {
+            case SegmentGroupNeighbor.Inside:
+                throw new ArgumentException(nameof(neighbor));
+            case SegmentGroupNeighbor.O:
+                return NeighborFaceInfoList[segGroupIndex][0];
+            case SegmentGroupNeighbor.A:
+                return NeighborFaceInfoList[segGroupIndex][1];
+            case SegmentGroupNeighbor.B:
+                return NeighborFaceInfoList[segGroupIndex][2];
+            case SegmentGroupNeighbor.OA:
+                return GetNeighbor2SegGroupIndex(segGroupIndex, 0, 1);
+            case SegmentGroupNeighbor.OB:
+                return GetNeighbor2SegGroupIndex(segGroupIndex, 0, 2);
+            case SegmentGroupNeighbor.AO:
+                return GetNeighbor2SegGroupIndex(segGroupIndex, 1, 0);
+            case SegmentGroupNeighbor.AB:
+                return GetNeighbor2SegGroupIndex(segGroupIndex, 1, 2);
+            case SegmentGroupNeighbor.BO:
+                return GetNeighbor2SegGroupIndex(segGroupIndex, 2, 0);
+            case SegmentGroupNeighbor.BA:
+                return GetNeighbor2SegGroupIndex(segGroupIndex, 2, 1);
+            case SegmentGroupNeighbor.Outside:
+            default:
+                throw new ArgumentOutOfRangeException(nameof(neighbor), neighbor, null);
+        }
+    }
+
+    static (int, EdgeNeighbor, EdgeNeighborOrigin, AxisOrientation) GetNeighbor2SegGroupIndex(int segGroupIndex, int n1Index,
+        int n2Index) {
+        var segGroupVertIndexList = VertIndexPerFaces[segGroupIndex];
+        var (n1SegGroupIndex, _, _, _) = NeighborFaceInfoList[segGroupIndex][n1Index];
+        return NeighborFaceInfoList[n1SegGroupIndex].ToList().FirstOrDefault(e => {
+            var (n2SegGroupIndex, _, _, _) = e;
+            return n2SegGroupIndex != segGroupIndex && VertIndexPerFaces[n2SegGroupIndex].Contains(segGroupVertIndexList[n2Index]);
+        });
+    }
+
     // 세그먼트 그룹 내에서 완전히 모든 이웃 세그먼트가 찾아지지 않고,
     // 세그먼트 그룹 경계를 벗어나는 이웃이 포함되는 경우에 
     // 이웃 세그먼트 인덱스를 모두 반환한다.
@@ -697,7 +740,9 @@ public class Sphere : MonoBehaviour {
         List<int> neighborSegIndexList = new();
         var neighborInfo = NeighborFaceInfoList[segGroupIndex];
 
-        foreach (var (neighbor, neighborAb, neighborT) in GetLocalSegmentIndexNeighborsAsAbt(false, n, localSegmentIndex)) {
+        var neighborsAsRelativeAbt = GetLocalSegmentIndexNeighborsAsAbt(false, n, localSegmentIndex);
+
+        foreach (var (neighbor, neighborAb, neighborT) in neighborsAsRelativeAbt) {
             switch (neighbor) {
                 case SegmentGroupNeighbor.Inside:
                     var neighborLocalSegIndex = ConvertToSegmentIndex(segGroupIndex,
@@ -706,28 +751,46 @@ public class Sphere : MonoBehaviour {
                     neighborSegIndexList.Add(ConvertToSegmentIndex(segGroupIndex, neighborLocalSegIndex));
                     break;
                 case SegmentGroupNeighbor.O:
-                    neighborSegIndexList.Add(ConvertCoordinateByNeighborInfo(baseAxisOrientation, neighborInfo[0], n, neighborAb, neighborT));
+                    neighborSegIndexList.Add(ConvertCoordinateByNeighborInfo(baseAxisOrientation, neighborInfo[0], n, neighborAb,
+                        neighborT));
                     break;
                 case SegmentGroupNeighbor.A:
-                    neighborSegIndexList.Add(ConvertCoordinateByNeighborInfo(baseAxisOrientation, neighborInfo[1], n, neighborAb, neighborT));
+                    neighborSegIndexList.Add(ConvertCoordinateByNeighborInfo(baseAxisOrientation, neighborInfo[1], n, neighborAb,
+                        neighborT));
                     break;
                 case SegmentGroupNeighbor.B:
-                    neighborSegIndexList.Add(ConvertCoordinateByNeighborInfo(baseAxisOrientation, neighborInfo[2], n, neighborAb, neighborT));
+                    neighborSegIndexList.Add(ConvertCoordinateByNeighborInfo(baseAxisOrientation, neighborInfo[2], n, neighborAb,
+                        neighborT));
                     break;
                 case SegmentGroupNeighbor.OA:
+                case SegmentGroupNeighbor.OB: {
+                    var neighbor1Info = GetNeighborInfoOfSegGroupIndex(segGroupIndex, SegmentGroupNeighbor.O);
+                    var (neighborAbx, neighborTx) = ConvertCoordinate(baseAxisOrientation, neighbor1Info, n, neighborAb, neighborT);
+                    neighborSegIndexList.Add(ConvertCoordinateByNeighborInfo(baseAxisOrientation,
+                        GetNeighborInfoOfSegGroupIndex(segGroupIndex, neighbor), n, neighborAbx,
+                        neighborTx));
                     break;
-                case SegmentGroupNeighbor.OB:
-                    break;
+                }
                 case SegmentGroupNeighbor.AO:
+                case SegmentGroupNeighbor.AB: {
+                    var neighbor1Info = GetNeighborInfoOfSegGroupIndex(segGroupIndex, SegmentGroupNeighbor.A);
+                    var (neighborAbx, neighborTx) = ConvertCoordinate(baseAxisOrientation, neighbor1Info, n, neighborAb, neighborT);
+                    neighborSegIndexList.Add(ConvertCoordinateByNeighborInfo(baseAxisOrientation,
+                        GetNeighborInfoOfSegGroupIndex(segGroupIndex, neighbor), n, neighborAbx,
+                        neighborTx));
                     break;
-                case SegmentGroupNeighbor.AB:
-                    break;
+                }
                 case SegmentGroupNeighbor.BO:
+                case SegmentGroupNeighbor.BA: {
+                    var neighbor1Info = GetNeighborInfoOfSegGroupIndex(segGroupIndex, SegmentGroupNeighbor.B);
+                    var (neighborAbx, neighborTx) = ConvertCoordinate(baseAxisOrientation, neighbor1Info, n, neighborAb, neighborT);
+                    
+                    neighborSegIndexList.Add(ConvertCoordinateByNeighborInfo(baseAxisOrientation,
+                        GetNeighborInfoOfSegGroupIndex(segGroupIndex, neighbor), n, neighborAbx,
+                        neighborTx));
                     break;
-                case SegmentGroupNeighbor.BA:
-                    break;
+                }
                 case SegmentGroupNeighbor.Outside:
-                    break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
@@ -735,10 +798,10 @@ public class Sphere : MonoBehaviour {
 
         return neighborSegIndexList.ToArray();
     }
+
     static int ConvertCoordinateByNeighborInfo(AxisOrientation baseAxisOrientation,
         (int, EdgeNeighbor, EdgeNeighborOrigin, AxisOrientation) neighborInfo,
         int n, Vector2Int neighborAb, bool neighborT) {
-
         var (neighborSegGroupIndex, edgeNeighbor, edgeNeighborOrigin, axisOrientation) = neighborInfo;
         var (convertedAb, convertedT) =
             ConvertCoordinate(baseAxisOrientation, edgeNeighbor, edgeNeighborOrigin, axisOrientation, n, neighborAb, neighborT);
@@ -756,8 +819,33 @@ public class Sphere : MonoBehaviour {
 
     static (SegmentGroupNeighbor, Vector2Int, bool)[]
         GetLocalSegmentIndexNeighborsAsAbt(bool canonical, int n, int localSegmentIndex) {
+        if (n < 1) {
+            throw new ArgumentOutOfRangeException(nameof(n));
+        }
+
         var (ab, t) = SplitLocalSegmentIndexToAbt(n, localSegmentIndex);
+
+        // i) 정이십면체 그대로인 상태일 때는 특수한 케이스이다.
+        if (n == 1) {
+            return new[] {
+                // 하단 행
+                ConvertAbtToNeighborAbt(canonical, n, new(ab.x, ab.y - 1), false),
+                ConvertAbtToNeighborAbt(canonical, n, new(ab.x, ab.y - 1), true),
+                ConvertAbtToNeighborAbt(canonical, n, new(ab.x + 1, ab.y - 1), false),
+                // 지금 행
+                ConvertAbtToNeighborAbt(canonical, n, new(ab.x - 1, ab.y), false),
+                ConvertAbtToNeighborAbt(canonical, n, new(ab.x - 1, ab.y), true),
+                ConvertAbtToNeighborAbt(canonical, n, new(ab.x, ab.y), true),
+                ConvertAbtToNeighborAbt(canonical, n, new(ab.x + 1, ab.y), false),
+                // 상단 행
+                ConvertAbtToNeighborAbt(canonical, n, new(ab.x - 1, ab.y + 1), false),
+                ConvertAbtToNeighborAbt(canonical, n, new(ab.x, ab.y + 1), false),
+            };
+        }
+
+        // iii) 그 밖의 경우
         if (t) {
+            // top인 경우
             return new[] {
                 // 하단 행
                 ConvertAbtToNeighborAbt(canonical, n, new(ab.x, ab.y - 1), true),
@@ -777,7 +865,43 @@ public class Sphere : MonoBehaviour {
             };
         }
 
-        return new[] {
+        // top이 아닌 경우
+        return GetLocalSegmentIndexNeighborsAsAbtCase3Bottom(canonical, n, ab);
+    }
+
+    static readonly (int, int, bool)[] Bottom3Offset = {
+        (-1, -1, true),
+        (0, -1, false),
+        (0, -1, true),
+        (1, -1, false),
+        (1, -1, true),
+        (-1, 0, false),
+        (-1, 0, true),
+        (0, 0, true),
+        (1, 0, false),
+        (-1, 1, false),
+        (-1, 1, true),
+        (0, 1, false),
+    };
+
+    static (SegmentGroupNeighbor, Vector2Int, bool)[]
+        GetLocalSegmentIndexNeighborsAsAbtCase3Bottom(bool canonical, int n, Vector2Int ab) {
+
+        var skipIndex = -1;
+        if (ab.x == 0 && ab.y == 0) {
+            skipIndex = 0;
+        } else if (ab.x == n - 1 && ab.y == 0) {
+            skipIndex = 4;
+        } else if (ab.x == 0 && ab.y == n - 1) {
+            skipIndex = 10;
+        }
+
+        return Bottom3Offset.Where((_, i) => i != skipIndex).Select(e => {
+            var (da, db, dt) = e;
+            return ConvertAbtToNeighborAbt(canonical, n, new(ab.x + da, ab.y + db), dt);
+        }).ToArray();
+
+        /*return new[] {
             // 하단 행
             ConvertAbtToNeighborAbt(canonical, n, new(ab.x - 1, ab.y - 1), true),
             ConvertAbtToNeighborAbt(canonical, n, new(ab.x, ab.y - 1), false),
@@ -793,7 +917,7 @@ public class Sphere : MonoBehaviour {
             ConvertAbtToNeighborAbt(canonical, n, new(ab.x - 1, ab.y + 1), false),
             ConvertAbtToNeighborAbt(canonical, n, new(ab.x - 1, ab.y + 1), true),
             ConvertAbtToNeighborAbt(canonical, n, new(ab.x, ab.y + 1), false),
-        };
+        };*/
     }
 
     [SuppressMessage("ReSharper", "InconsistentNaming")]
@@ -846,6 +970,12 @@ public class Sphere : MonoBehaviour {
 
     static Vector2Int Swap(int a, int b, bool swap) {
         return swap == false ? new(a, b) : new(b, a);
+    }
+
+    static (Vector2Int, bool) ConvertCoordinate(AxisOrientation baseAxisOrientation,
+        (int, EdgeNeighbor, EdgeNeighborOrigin, AxisOrientation) neighborInfo, int n, Vector2Int ab, bool t) {
+        var (_, edgeNeighbor, edgeNeighborOrigin, axisOrientation) = neighborInfo;
+        return ConvertCoordinate(baseAxisOrientation, edgeNeighbor, edgeNeighborOrigin, axisOrientation, n, ab, t);
     }
 
     static (Vector2Int, bool) ConvertCoordinate(AxisOrientation baseAxisOrientation,
@@ -910,8 +1040,8 @@ public class Sphere : MonoBehaviour {
         Outside,
     }
 
-    // ABT 좌표계가 가리키는 위치가 평행사변형의 상단인지 하단인지 판단하여 반환한다.
-    // 상단이면 true, 하단이면 false를 반환하며, 범위를 벗어나는 경우에는 예외를 던진다.
+// ABT 좌표계가 가리키는 위치가 평행사변형의 상단인지 하단인지 판단하여 반환한다.
+// 상단이면 true, 하단이면 false를 반환하며, 범위를 벗어나는 경우에는 예외를 던진다.
     public static ParallelogramGroup CheckBottomOrTopFromParallelogram(int n, Vector2Int ab, bool t) {
         if (n < 1) {
             throw new ArgumentOutOfRangeException(nameof(n));
@@ -928,7 +1058,7 @@ public class Sphere : MonoBehaviour {
         return ab.x + ab.y != n - 1 || t ? ParallelogramGroup.Top : ParallelogramGroup.Bottom;
     }
 
-    // ABT 좌표가 어떤 SegmentGroupNeighbor에 속하는지를 체크해서 반환한다. 
+// ABT 좌표가 어떤 SegmentGroupNeighbor에 속하는지를 체크해서 반환한다. 
     public static SegmentGroupNeighbor CheckSegmentGroupNeighbor(int n, Vector2Int ab, bool t) {
         switch (CheckBottomOrTopFromParallelogram(n, ab, t)) {
             case ParallelogramGroup.Bottom:
@@ -1006,8 +1136,8 @@ public class Sphere : MonoBehaviour {
         }
     }
 
-    // 하나의 세그먼트 그룹을 벗어나 인접한 세그먼트 그룹 내 세그먼트를 가리키는
-    // ABT 좌표를 인접한 세그먼트 그룹과 해당 세그먼트 그룹 내의 유효한 ABT 좌표로 변환하여 반환한다.
+// 하나의 세그먼트 그룹을 벗어나 인접한 세그먼트 그룹 내 세그먼트를 가리키는
+// ABT 좌표를 인접한 세그먼트 그룹과 해당 세그먼트 그룹 내의 유효한 ABT 좌표로 변환하여 반환한다.
     public static (SegmentGroupNeighbor, Vector2Int, bool) ConvertAbtToNeighborAbt(bool canonical, int n, Vector2Int ab, bool t) {
         if (n < 1) {
             throw new ArgumentOutOfRangeException(nameof(n));
