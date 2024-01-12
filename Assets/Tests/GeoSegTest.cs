@@ -480,6 +480,23 @@ public class GeoSegTest {
             }));
     }
 
+    [Test]
+    public void TestConvertCoordinate() {
+        Assert.AreEqual((new Vector2Int(-1, 0), true), Sphere.ConvertCoordinate(Sphere.AxisOrientation.CW, Sphere.EdgeNeighbor.O,
+            Sphere.EdgeNeighborOrigin.A,
+            Sphere.AxisOrientation.CW, 1, new(0, 0), false));
+        Assert.AreEqual((new Vector2Int(-1, 0), false), Sphere.ConvertCoordinate(Sphere.AxisOrientation.CW, Sphere.EdgeNeighbor.B,
+            Sphere.EdgeNeighborOrigin.O,
+            Sphere.AxisOrientation.CW, 1, new(-1, 0), true));
+        
+        Assert.AreEqual((new Vector2Int(-8, 7), true), Sphere.ConvertCoordinate(Sphere.AxisOrientation.CW, Sphere.EdgeNeighbor.O,
+            Sphere.EdgeNeighborOrigin.A,
+            Sphere.AxisOrientation.CW, 8, new(0, 0), false));
+        Assert.AreEqual((new Vector2Int(-8, 0), false), Sphere.ConvertCoordinate(Sphere.AxisOrientation.CW, Sphere.EdgeNeighbor.B,
+            Sphere.EdgeNeighborOrigin.O,
+            Sphere.AxisOrientation.CW, 8, new(-8, 7), true));
+    }
+
     // A UnityTest behaves like a coroutine in Play Mode. In Edit Mode you can use
     // `yield return null;` to skip a frame.
     [UnityTest]

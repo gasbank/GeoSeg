@@ -765,28 +765,32 @@ public class Sphere : MonoBehaviour {
                 case SegmentGroupNeighbor.OA:
                 case SegmentGroupNeighbor.OB: {
                     var neighbor1Info = GetNeighborInfoOfSegGroupIndex(segGroupIndex, SegmentGroupNeighbor.O);
-                    var (neighborAbx, neighborTx) = ConvertCoordinate(baseAxisOrientation, neighbor1Info, n, neighborAb, neighborT);
+                    var (neighborAb1, neighborT1) = ConvertCoordinate(baseAxisOrientation, neighbor1Info, n, neighborAb, neighborT);
+
+                    //var neighbor2Info = GetNeighborInfoOfSegGroupIndex(neighbor1Info.Item1, neighbor);
+                    //var (neighborAb2, neighborT2) = ConvertCoordinate(baseAxisOrientation, neighbor2Info, n, neighborAb1, neighborT1);
+
                     neighborSegIndexList.Add(ConvertCoordinateByNeighborInfo(baseAxisOrientation,
-                        GetNeighborInfoOfSegGroupIndex(segGroupIndex, neighbor), n, neighborAbx,
-                        neighborTx));
+                        GetNeighborInfoOfSegGroupIndex(neighbor1Info.Item1, neighbor), n, neighborAb1,
+                        neighborT1));
                     break;
                 }
                 case SegmentGroupNeighbor.AO:
                 case SegmentGroupNeighbor.AB: {
                     var neighbor1Info = GetNeighborInfoOfSegGroupIndex(segGroupIndex, SegmentGroupNeighbor.A);
-                    var (neighborAbx, neighborTx) = ConvertCoordinate(baseAxisOrientation, neighbor1Info, n, neighborAb, neighborT);
+                    var (neighborAb1, neighborT1) = ConvertCoordinate(baseAxisOrientation, neighbor1Info, n, neighborAb, neighborT);
                     neighborSegIndexList.Add(ConvertCoordinateByNeighborInfo(baseAxisOrientation,
-                        GetNeighborInfoOfSegGroupIndex(segGroupIndex, neighbor), n, neighborAbx,
-                        neighborTx));
+                        GetNeighborInfoOfSegGroupIndex(neighbor1Info.Item1, neighbor), n, neighborAb1,
+                        neighborT1));
                     break;
                 }
                 case SegmentGroupNeighbor.BO:
                 case SegmentGroupNeighbor.BA: {
                     var neighbor1Info = GetNeighborInfoOfSegGroupIndex(segGroupIndex, SegmentGroupNeighbor.B);
                     var (neighborAbx, neighborTx) = ConvertCoordinate(baseAxisOrientation, neighbor1Info, n, neighborAb, neighborT);
-                    
+
                     neighborSegIndexList.Add(ConvertCoordinateByNeighborInfo(baseAxisOrientation,
-                        GetNeighborInfoOfSegGroupIndex(segGroupIndex, neighbor), n, neighborAbx,
+                        GetNeighborInfoOfSegGroupIndex(neighbor1Info.Item1, neighbor), n, neighborAbx,
                         neighborTx));
                     break;
                 }
@@ -978,7 +982,7 @@ public class Sphere : MonoBehaviour {
         return ConvertCoordinate(baseAxisOrientation, edgeNeighbor, edgeNeighborOrigin, axisOrientation, n, ab, t);
     }
 
-    static (Vector2Int, bool) ConvertCoordinate(AxisOrientation baseAxisOrientation,
+    public static (Vector2Int, bool) ConvertCoordinate(AxisOrientation baseAxisOrientation,
         EdgeNeighbor edgeNeighbor, EdgeNeighborOrigin edgeNeighborOrigin, AxisOrientation axisOrientation,
         int n, Vector2Int ab, bool t) {
         var (a, b) = (ab.x, ab.y);
@@ -990,9 +994,9 @@ public class Sphere : MonoBehaviour {
             case EdgeNeighbor.O:
                 switch (edgeNeighborOrigin) {
                     case EdgeNeighborOrigin.A:
-                        return (Swap(a + b + tv - (n - 1) - 1, -a + (n - 1), swap), tInvert);
+                        return (Swap(a + b + tv - n, -a + (n - 1), swap), tInvert);
                     case EdgeNeighborOrigin.B:
-                        return (Swap(-b + (n - 1), a + b + tv - (n - 1) - 1, swap), tInvert);
+                        return (Swap(-b + (n - 1), a + b + tv - n, swap), tInvert);
                     case EdgeNeighborOrigin.Op:
                         return (Swap(-a + (n - 1), -b + (n - 1), swap), tInvert);
                     case EdgeNeighborOrigin.O:
@@ -1136,14 +1140,16 @@ public class Sphere : MonoBehaviour {
         }
     }
 
-// 하나의 세그먼트 그룹을 벗어나 인접한 세그먼트 그룹 내 세그먼트를 가리키는
-// ABT 좌표를 인접한 세그먼트 그룹과 해당 세그먼트 그룹 내의 유효한 ABT 좌표로 변환하여 반환한다.
+    // 하나의 세그먼트 그룹을 벗어나 인접한 세그먼트 그룹 내 세그먼트를 가리키는
+    // ABT 좌표를 인접한 세그먼트 그룹과 해당 세그먼트 그룹 내의 유효한 ABT 좌표로 변환하여 반환한다.
     public static (SegmentGroupNeighbor, Vector2Int, bool) ConvertAbtToNeighborAbt(bool canonical, int n, Vector2Int ab, bool t) {
         if (n < 1) {
             throw new ArgumentOutOfRangeException(nameof(n));
         }
 
-        switch (CheckSegmentGroupNeighbor(n, ab, t)) {
+        var segmentGroupNeighbor = CheckSegmentGroupNeighbor(n, ab, t);
+
+        switch (segmentGroupNeighbor) {
             case SegmentGroupNeighbor.Inside:
                 return (SegmentGroupNeighbor.Inside, ab, t);
             case SegmentGroupNeighbor.O: {
@@ -1176,6 +1182,11 @@ public class Sphere : MonoBehaviour {
             case SegmentGroupNeighbor.OB: {
                 var (abO, tO) = ConvertCoordinateToO(n, ab, t);
                 var (neighbor, abOx, tOx) = ConvertAbtToNeighborAbt(canonical, n, abO, tO);
+                
+                if (!canonical) {
+                    return (neighbor, ab, t);
+                }
+                
                 // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
                 return neighbor switch {
                     SegmentGroupNeighbor.A => (SegmentGroupNeighbor.OA, abOx, tOx),
@@ -1187,6 +1198,11 @@ public class Sphere : MonoBehaviour {
             case SegmentGroupNeighbor.AB: {
                 var (abA, tA) = ConvertCoordinateToA(n, ab, t);
                 var (neighbor, abAx, tAx) = ConvertAbtToNeighborAbt(canonical, n, abA, tA);
+                
+                if (!canonical) {
+                    return (segmentGroupNeighbor, ab, t);
+                }
+                
                 // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
                 return neighbor switch {
                     SegmentGroupNeighbor.O => (SegmentGroupNeighbor.AO, abAx, tAx),
@@ -1198,6 +1214,11 @@ public class Sphere : MonoBehaviour {
             case SegmentGroupNeighbor.BA: {
                 var (abB, tB) = ConvertCoordinateToB(n, ab, t);
                 var (neighbor, abBx, tBx) = ConvertAbtToNeighborAbt(canonical, n, abB, tB);
+                
+                if (!canonical) {
+                    return (segmentGroupNeighbor, ab, t);
+                }
+                
                 // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
                 return neighbor switch {
                     SegmentGroupNeighbor.O => (SegmentGroupNeighbor.BO, abBx, tBx),
