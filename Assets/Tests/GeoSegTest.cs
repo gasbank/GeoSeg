@@ -274,11 +274,11 @@ public class GeoSegTest {
 
         Assert.AreEqual(Sphere.SegmentGroupNeighbor.Inside, Sphere.CheckSegmentGroupNeighbor(1, new(0, 0), false));
         Assert.AreEqual(Sphere.SegmentGroupNeighbor.O, Sphere.CheckSegmentGroupNeighbor(1, new(0, 0), true));
-        Assert.AreEqual(Sphere.SegmentGroupNeighbor.OA, Sphere.CheckSegmentGroupNeighbor(1, new(1, 0), false));
+        Assert.AreEqual(Sphere.SegmentGroupNeighbor.OB, Sphere.CheckSegmentGroupNeighbor(1, new(1, 0), false));
         Assert.AreEqual(Sphere.SegmentGroupNeighbor.AB, Sphere.CheckSegmentGroupNeighbor(1, new(-1, 0), false));
         Assert.AreEqual(Sphere.SegmentGroupNeighbor.A, Sphere.CheckSegmentGroupNeighbor(1, new(-1, 0), true));
         Assert.AreEqual(Sphere.SegmentGroupNeighbor.AO, Sphere.CheckSegmentGroupNeighbor(1, new(-1, 1), false));
-        Assert.AreEqual(Sphere.SegmentGroupNeighbor.OB, Sphere.CheckSegmentGroupNeighbor(1, new(0, 1), false));
+        Assert.AreEqual(Sphere.SegmentGroupNeighbor.OA, Sphere.CheckSegmentGroupNeighbor(1, new(0, 1), false));
         Assert.AreEqual(Sphere.SegmentGroupNeighbor.BA, Sphere.CheckSegmentGroupNeighbor(1, new(0, -1), false));
         Assert.AreEqual(Sphere.SegmentGroupNeighbor.B, Sphere.CheckSegmentGroupNeighbor(1, new(0, -1), true));
         Assert.AreEqual(Sphere.SegmentGroupNeighbor.BO, Sphere.CheckSegmentGroupNeighbor(1, new(1, -1), false));

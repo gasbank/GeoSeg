@@ -167,7 +167,7 @@ public class Sphere : MonoBehaviour {
 
     static readonly (int, EdgeNeighbor, EdgeNeighborOrigin, AxisOrientation)[][] NeighborFaceInfoList = BuildNeighborFaceInfoList();
 
-    const int SubdivisionCount = 8; //8192;
+    const int SubdivisionCount = 4; //8192;
     const int RenderingSubdivisionCountLimit = 128;
 
     void Start() {
@@ -724,7 +724,8 @@ public class Sphere : MonoBehaviour {
         var (n1SegGroupIndex, _, _, _) = NeighborFaceInfoList[segGroupIndex][n1Index];
         return NeighborFaceInfoList[n1SegGroupIndex].ToList().FirstOrDefault(e => {
             var (n2SegGroupIndex, _, _, _) = e;
-            return n2SegGroupIndex != segGroupIndex && VertIndexPerFaces[n2SegGroupIndex].Contains(segGroupVertIndexList[n2Index]);
+            return n2SegGroupIndex != segGroupIndex
+                   && VertIndexPerFaces[n2SegGroupIndex].Contains(segGroupVertIndexList[n2Index]) == false;
         });
     }
 
@@ -766,12 +767,9 @@ public class Sphere : MonoBehaviour {
                 case SegmentGroupNeighbor.OB: {
                     var neighbor1Info = GetNeighborInfoOfSegGroupIndex(segGroupIndex, SegmentGroupNeighbor.O);
                     var (neighborAb1, neighborT1) = ConvertCoordinate(baseAxisOrientation, neighbor1Info, n, neighborAb, neighborT);
+                    var neighbor2Info = GetNeighborInfoOfSegGroupIndex(segGroupIndex, neighbor);
 
-                    //var neighbor2Info = GetNeighborInfoOfSegGroupIndex(neighbor1Info.Item1, neighbor);
-                    //var (neighborAb2, neighborT2) = ConvertCoordinate(baseAxisOrientation, neighbor2Info, n, neighborAb1, neighborT1);
-
-                    neighborSegIndexList.Add(ConvertCoordinateByNeighborInfo(baseAxisOrientation,
-                        GetNeighborInfoOfSegGroupIndex(neighbor1Info.Item1, neighbor), n, neighborAb1,
+                    neighborSegIndexList.Add(ConvertCoordinateByNeighborInfo(baseAxisOrientation, neighbor2Info, n, neighborAb1,
                         neighborT1));
                     break;
                 }
@@ -779,8 +777,9 @@ public class Sphere : MonoBehaviour {
                 case SegmentGroupNeighbor.AB: {
                     var neighbor1Info = GetNeighborInfoOfSegGroupIndex(segGroupIndex, SegmentGroupNeighbor.A);
                     var (neighborAb1, neighborT1) = ConvertCoordinate(baseAxisOrientation, neighbor1Info, n, neighborAb, neighborT);
-                    neighborSegIndexList.Add(ConvertCoordinateByNeighborInfo(baseAxisOrientation,
-                        GetNeighborInfoOfSegGroupIndex(neighbor1Info.Item1, neighbor), n, neighborAb1,
+                    var neighbor2Info = GetNeighborInfoOfSegGroupIndex(segGroupIndex, neighbor);
+
+                    neighborSegIndexList.Add(ConvertCoordinateByNeighborInfo(baseAxisOrientation, neighbor2Info, n, neighborAb1,
                         neighborT1));
                     break;
                 }
@@ -788,9 +787,9 @@ public class Sphere : MonoBehaviour {
                 case SegmentGroupNeighbor.BA: {
                     var neighbor1Info = GetNeighborInfoOfSegGroupIndex(segGroupIndex, SegmentGroupNeighbor.B);
                     var (neighborAbx, neighborTx) = ConvertCoordinate(baseAxisOrientation, neighbor1Info, n, neighborAb, neighborT);
+                    var neighbor2Info = GetNeighborInfoOfSegGroupIndex(segGroupIndex, neighbor);
 
-                    neighborSegIndexList.Add(ConvertCoordinateByNeighborInfo(baseAxisOrientation,
-                        GetNeighborInfoOfSegGroupIndex(neighbor1Info.Item1, neighbor), n, neighborAbx,
+                    neighborSegIndexList.Add(ConvertCoordinateByNeighborInfo(baseAxisOrientation, neighbor2Info, n, neighborAbx,
                         neighborTx));
                     break;
                 }
@@ -1062,7 +1061,7 @@ public class Sphere : MonoBehaviour {
         return ab.x + ab.y != n - 1 || t ? ParallelogramGroup.Top : ParallelogramGroup.Bottom;
     }
 
-// ABT 좌표가 어떤 SegmentGroupNeighbor에 속하는지를 체크해서 반환한다. 
+    // ABT 좌표가 어떤 SegmentGroupNeighbor에 속하는지를 체크해서 반환한다. 
     public static SegmentGroupNeighbor CheckSegmentGroupNeighbor(int n, Vector2Int ab, bool t) {
         switch (CheckBottomOrTopFromParallelogram(n, ab, t)) {
             case ParallelogramGroup.Bottom:
@@ -1072,7 +1071,7 @@ public class Sphere : MonoBehaviour {
             case ParallelogramGroup.Outside:
                 switch (CheckBottomOrTopFromParallelogram(n, new(ab.x - n, ab.y), t)) {
                     case ParallelogramGroup.Bottom:
-                        return SegmentGroupNeighbor.OA;
+                        return SegmentGroupNeighbor.OB;
                     case ParallelogramGroup.Top:
                         return SegmentGroupNeighbor.Outside;
                     case ParallelogramGroup.Outside:
@@ -1094,7 +1093,7 @@ public class Sphere : MonoBehaviour {
 
                 switch (CheckBottomOrTopFromParallelogram(n, new(ab.x, ab.y - n), t)) {
                     case ParallelogramGroup.Bottom:
-                        return SegmentGroupNeighbor.OB;
+                        return SegmentGroupNeighbor.OA;
                     case ParallelogramGroup.Top:
                         return SegmentGroupNeighbor.Outside;
                     case ParallelogramGroup.Outside:
@@ -1151,10 +1150,10 @@ public class Sphere : MonoBehaviour {
 
         switch (segmentGroupNeighbor) {
             case SegmentGroupNeighbor.Inside:
-                return (SegmentGroupNeighbor.Inside, ab, t);
+                return (segmentGroupNeighbor, ab, t);
             case SegmentGroupNeighbor.O: {
                 if (!canonical) {
-                    return (SegmentGroupNeighbor.O, ab, t);
+                    return (segmentGroupNeighbor, ab, t);
                 }
 
                 var (abO, tO) = ConvertCoordinateToO(n, ab, t);
@@ -1163,7 +1162,7 @@ public class Sphere : MonoBehaviour {
             }
             case SegmentGroupNeighbor.A: {
                 if (!canonical) {
-                    return (SegmentGroupNeighbor.A, ab, t);
+                    return (segmentGroupNeighbor, ab, t);
                 }
 
                 var (abA, tA) = ConvertCoordinateToA(n, ab, t);
@@ -1172,7 +1171,7 @@ public class Sphere : MonoBehaviour {
             }
             case SegmentGroupNeighbor.B: {
                 if (!canonical) {
-                    return (SegmentGroupNeighbor.B, ab, t);
+                    return (segmentGroupNeighbor, ab, t);
                 }
 
                 var (abB, tB) = ConvertCoordinateToB(n, ab, t);
@@ -1182,11 +1181,11 @@ public class Sphere : MonoBehaviour {
             case SegmentGroupNeighbor.OB: {
                 var (abO, tO) = ConvertCoordinateToO(n, ab, t);
                 var (neighbor, abOx, tOx) = ConvertAbtToNeighborAbt(canonical, n, abO, tO);
-                
+
                 if (!canonical) {
-                    return (neighbor, ab, t);
+                    return (segmentGroupNeighbor, ab, t);
                 }
-                
+
                 // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
                 return neighbor switch {
                     SegmentGroupNeighbor.A => (SegmentGroupNeighbor.OA, abOx, tOx),
@@ -1198,11 +1197,11 @@ public class Sphere : MonoBehaviour {
             case SegmentGroupNeighbor.AB: {
                 var (abA, tA) = ConvertCoordinateToA(n, ab, t);
                 var (neighbor, abAx, tAx) = ConvertAbtToNeighborAbt(canonical, n, abA, tA);
-                
+
                 if (!canonical) {
                     return (segmentGroupNeighbor, ab, t);
                 }
-                
+
                 // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
                 return neighbor switch {
                     SegmentGroupNeighbor.O => (SegmentGroupNeighbor.AO, abAx, tAx),
@@ -1214,11 +1213,11 @@ public class Sphere : MonoBehaviour {
             case SegmentGroupNeighbor.BA: {
                 var (abB, tB) = ConvertCoordinateToB(n, ab, t);
                 var (neighbor, abBx, tBx) = ConvertAbtToNeighborAbt(canonical, n, abB, tB);
-                
+
                 if (!canonical) {
                     return (segmentGroupNeighbor, ab, t);
                 }
-                
+
                 // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
                 return neighbor switch {
                     SegmentGroupNeighbor.O => (SegmentGroupNeighbor.BO, abBx, tBx),
