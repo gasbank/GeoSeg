@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Text;
 using Unity.Mathematics;
 using UnityEngine;
 
@@ -155,7 +156,8 @@ public static class Geocoding {
 
     static readonly AxisOrientation[] FaceAxisOrientationList = BuildFaceAxisOrientationList();
 
-    public static readonly (int, EdgeNeighbor, EdgeNeighborOrigin, AxisOrientation)[][] NeighborFaceInfoList = BuildNeighborFaceInfoList();
+    public static readonly (int, EdgeNeighbor, EdgeNeighborOrigin, AxisOrientation)[][] NeighborFaceInfoList =
+        BuildNeighborFaceInfoList();
 
     static AxisOrientation DetermineAxisOrientation(int[] face) {
         var faceVerts = face.Select(e => Vertices[e]).ToArray();
@@ -394,7 +396,7 @@ public static class Geocoding {
                     continue;
                 case > 0:
                     b1 = bMid;
-                    break;
+                    continue;
                 default:
                     return bMid;
             }
@@ -1120,5 +1122,49 @@ public static class Geocoding {
         }
 
         throw new();
+    }
+    public static StringBuilder GenerateSourceCode() {
+
+        StringBuilder sb = new();
+
+        sb.AppendLine("const Vector3 SegmentGroupTriList[20][3] = {");
+        foreach (var ee in SegmentGroupTriList) {
+            sb.AppendLine("        {");
+            foreach (var e in ee) {
+                sb.AppendLine($"                {{{e.x},{e.z},{e.y}}},");
+            }
+
+            sb.AppendLine("        },");
+        }
+
+        sb.AppendLine("};");
+
+        sb.AppendLine();
+
+        sb.AppendLine("const AxisOrientation FaceAxisOrientationList[20] = {");
+        foreach (var e in FaceAxisOrientationList) {
+            sb.AppendLine($"        AxisOrientation_{e},");
+        }
+
+        sb.AppendLine("};");
+        
+        sb.AppendLine();
+        
+        sb.AppendLine("const NeighborInfo NeighborFaceInfoList[20][3] = {");
+        foreach (var ee in NeighborFaceInfoList) {
+            sb.AppendLine("        {");
+            foreach (var e in ee) {
+                var (neighborSegGroupIndex, edgeNeighbor, edgeNeighborOrigin, axisOrientation) = e;
+                sb.AppendLine($"                {{{neighborSegGroupIndex},EdgeNeighbor_{edgeNeighbor},EdgeNeighborOrigin_{edgeNeighborOrigin},AxisOrientation_{axisOrientation}}},");
+            }
+
+            sb.AppendLine("        },");
+        }
+
+        sb.AppendLine("};");
+        
+        
+
+        return sb;
     }
 }

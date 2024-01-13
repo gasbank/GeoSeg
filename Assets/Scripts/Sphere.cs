@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text;
 using UnityEditor;
 using UnityEngine;
 
@@ -136,6 +138,11 @@ public class Sphere : MonoBehaviour {
                 Handles.Label(center, $"f{index}", index == segGroupIndex ? selectedHandleStyle : handleStyle);
             }
         }
+    }
+
+    [ContextMenu("Generate Source Code")]
+    void GenerateSourceCode() {
+        File.WriteAllText("Code.c", Geocoding.GenerateSourceCode().ToString());
     }
 #endif
 
