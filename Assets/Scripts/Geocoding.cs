@@ -5,7 +5,7 @@ using System.Linq;
 using Unity.Mathematics;
 using UnityEngine;
 
-public class Geocoding {
+public static class Geocoding {
     // 황금비를 이루는 직사각형의 너비와 높이 계산
     // (직사각형의 중심에서 각 꼭지점까지의 거리는 1)
     // Hh: 직사각형 높이의 절반
@@ -13,7 +13,7 @@ public class Geocoding {
     static readonly float Hh = 2 / Mathf.Sqrt(10 + 2 * Mathf.Sqrt(5));
     static readonly float Wh = Hh * (1 + Mathf.Sqrt(5)) / 2;
 
-    static readonly int[][] VertIndexPerFaces = {
+    public static readonly int[][] VertIndexPerFaces = {
         // Face 0
         new[] {
             0,
@@ -136,7 +136,7 @@ public class Geocoding {
         },
     };
 
-    static readonly Vector3[] Vertices = {
+    public static readonly Vector3[] Vertices = {
         new(0, -Hh, -Wh),
         new(0, +Hh, -Wh),
         new(0, +Hh, +Wh),
@@ -151,11 +151,11 @@ public class Geocoding {
         new(-Hh, +Wh, 0),
     };
 
-    static readonly Vector3[][] SegmentGroupTriList = BuildSegmentGroupTriList();
+    public static readonly Vector3[][] SegmentGroupTriList = BuildSegmentGroupTriList();
 
     static readonly AxisOrientation[] FaceAxisOrientationList = BuildFaceAxisOrientationList();
 
-    static readonly (int, EdgeNeighbor, EdgeNeighborOrigin, AxisOrientation)[][] NeighborFaceInfoList = BuildNeighborFaceInfoList();
+    public static readonly (int, EdgeNeighbor, EdgeNeighborOrigin, AxisOrientation)[][] NeighborFaceInfoList = BuildNeighborFaceInfoList();
 
     static AxisOrientation DetermineAxisOrientation(int[] face) {
         var faceVerts = face.Select(e => Vertices[e]).ToArray();
@@ -293,7 +293,7 @@ public class Geocoding {
     }
 
 
-    static int CalculateSegmentIndexFromLatLng(int n, float userPosLat, float userPosLng) {
+    public static int CalculateSegmentIndexFromLatLng(int n, float userPosLat, float userPosLng) {
 
         var userPosFromLatLng = CalculateUnitSpherePosition(userPosLat, userPosLng) * 2;
 
@@ -321,7 +321,7 @@ public class Geocoding {
 
         return ConvertToSegmentIndex(segGroupIndex, n, abCoords.x, abCoords.y, top);
     }
-    static Vector3 CalculateUnitSpherePosition(float lat, float lng) {
+    public static Vector3 CalculateUnitSpherePosition(float lat, float lng) {
         var cLat = Mathf.Cos(lat);
         var sLat = Mathf.Sin(lat);
 
@@ -417,21 +417,21 @@ public class Geocoding {
     // 즉 32비트에서 1비트+5비트를 제외한 비트를 local segment index 공간으로 쓸 수 있다.
     const int LocalSegmentIndexBitCount = 32 - 1 - 5;
 
-    static (int, int) SplitSegIndexToSegGroupAndLocalSegmentIndex(int segmentIndex) {
+    public static (int, int) SplitSegIndexToSegGroupAndLocalSegmentIndex(int segmentIndex) {
         var segmentGroupIndex = segmentIndex >> LocalSegmentIndexBitCount;
         var localSegIndex = segmentIndex & ((1 << LocalSegmentIndexBitCount) - 1);
         return (segmentGroupIndex, localSegIndex);
     }
 
     // Seg Index를 Seg Group & ABT로 변환해서 반환
-    static Tuple<int, Vector2Int, bool> SplitSegIndexToSegGroupAndAbt(int n, int segmentIndex) {
+    public static Tuple<int, Vector2Int, bool> SplitSegIndexToSegGroupAndAbt(int n, int segmentIndex) {
         var (segmentGroupIndex, localSegIndex) = SplitSegIndexToSegGroupAndLocalSegmentIndex(segmentIndex);
         var (abCoords, top) = SplitLocalSegmentIndexToAbt(n, localSegIndex);
         return Tuple.Create(segmentGroupIndex, abCoords, top);
     }
 
     // Seg Index의 중심 좌표를 계산해서 반환
-    static Vector3 CalculateSegmentCenter(int n, int segmentIndex) {
+    public static Vector3 CalculateSegmentCenter(int n, int segmentIndex) {
         var (segGroupIndex, ab, t) = SplitSegIndexToSegGroupAndAbt(n, segmentIndex);
         var segGroupVerts = VertIndexPerFaces[segGroupIndex].Select(e => Vertices[e]).ToArray();
         var axisA = (segGroupVerts[1] - segGroupVerts[0]) / n;
@@ -443,7 +443,7 @@ public class Geocoding {
     }
 
     // Seg Index의 중심 좌표의 위도 경도를 계산해서 반환
-    static (float, float) CalculateSegmentCenterLatLng(int n, int segmentIndex) {
+    public static (float, float) CalculateSegmentCenterLatLng(int n, int segmentIndex) {
         return CalculateLatLng(CalculateSegmentCenter(n, segmentIndex));
     }
 
@@ -502,7 +502,7 @@ public class Geocoding {
     // 임의의 지점 p의 위도, 경도를 계산하여 라디안으로 반환한다.
     // 위도는 -pi/2 ~ +pi/2 범위
     // 경도는 -pi ~ pi 범위다.
-    static (float, float) CalculateLatLng(Vector3 p) {
+    public static (float, float) CalculateLatLng(Vector3 p) {
         var pNormalized = p.normalized;
 
         var lng = Normalize(Mathf.Atan2(pNormalized.z, pNormalized.x), -Mathf.PI, Mathf.PI);
@@ -623,7 +623,7 @@ public class Geocoding {
     // 세그먼트 그룹 경계를 벗어나는 이웃이 포함되는 경우에 
     // 이웃 세그먼트 인덱스를 모두 반환한다.
     // 여러 세그먼트 그룹에 걸쳐야하므로, 세그먼트 서브 인덱스로 조회할 수는 없다.
-    static int[] GetNeighborsOfSegmentIndex(int n, int segmentIndex) {
+    public static int[] GetNeighborsOfSegmentIndex(int n, int segmentIndex) {
         var (segGroupIndex, localSegmentIndex) = SplitSegIndexToSegGroupAndLocalSegmentIndex(segmentIndex);
 
         var baseAxisOrientation = FaceAxisOrientationList[segGroupIndex];
@@ -1120,66 +1120,5 @@ public class Geocoding {
         }
 
         throw new();
-    }
-
-    static Mesh CreateSubdividedTri(IReadOnlyList<Vector3> vList, int n) {
-        var totalVCount = (n + 1) * (n + 2) / 2;
-        var totalFCount = n * n;
-
-        var v0 = vList[0];
-        var v1 = vList[1];
-        var v2 = vList[2];
-
-        var uA = (v1 - v0) / n;
-        var uB = (v2 - v0) / n;
-
-        var vertices = new Vector3[totalVCount];
-        var edgesPerFaces = new int[totalFCount][];
-
-        var vIndex = 0;
-        var fIndex = 0;
-        for (var b = 0; b <= n; b++) {
-            for (var a = 0; a <= n - b; a++) {
-                vertices[vIndex] = v0 + (uA * a + uB * b);
-                if (a <= n - b - 1) {
-                    edgesPerFaces[fIndex] = new[] {
-                        vIndex,
-                        vIndex + 1,
-                        vIndex + n + 1 - b,
-                    };
-                    fIndex++;
-
-                    if (a <= n - b - 2) {
-                        edgesPerFaces[fIndex] = new[] {
-                            vIndex + 1,
-                            vIndex + 1 + n + 1 - b,
-                            vIndex + 1 + n + 1 - b - 1,
-                        };
-                        fIndex++;
-                    }
-                }
-
-                vIndex++;
-            }
-        }
-
-        for (var index = 0; index < vertices.Length; index++) {
-            vertices[index] = vertices[index].normalized;
-        }
-
-        var mesh = new Mesh { vertices = vertices };
-
-        var triangles = edgesPerFaces.SelectMany(e => e).ToArray();
-
-        mesh.triangles = triangles;
-        mesh.normals = vertices;
-        mesh.RecalculateNormals();
-        mesh.subMeshCount = 4;
-        mesh.SetTriangles(triangles, 0);
-        mesh.SetTriangles(triangles.Take(3).ToList(), 1);
-        mesh.SetTriangles(triangles.Skip(3 * ((n - 1) * 2)).Take(3).ToList(), 2);
-        mesh.SetTriangles(triangles.Skip(3 * (totalFCount - 1)).Take(3).ToList(), 3);
-
-        return mesh;
     }
 }
