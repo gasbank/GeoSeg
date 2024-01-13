@@ -163,6 +163,8 @@ public class Sphere : MonoBehaviour {
         new(-Hh, +Wh, 0),
     };
 
+    static readonly Vector3[][] SegmentGroupTriList = BuildSegmentGroupTriList();
+    
     static readonly AxisOrientation[] FaceAxisOrientationList = BuildFaceAxisOrientationList();
 
     static readonly (int, EdgeNeighbor, EdgeNeighborOrigin, AxisOrientation)[][] NeighborFaceInfoList = BuildNeighborFaceInfoList();
@@ -361,30 +363,15 @@ public class Sphere : MonoBehaviour {
             fontSize = 20
         };
 
-        List<Vector3[]> segmentGroupTriList = new();
-
-
-        for (var index = 0; index < VertIndexPerFaces.Length; index++) {
-            var e = VertIndexPerFaces[index];
-            var edgeVertices = e.Select(ee => Vertices[ee]).ToArray();
-            Gizmos.DrawLineStrip(edgeVertices, true);
-
-            var center = edgeVertices.Aggregate(Vector3.zero, (s, v) => s + v) / edgeVertices.Length;
+        for (var index = 0; index < SegmentGroupTriList.Length; index++) {
+            var triList = SegmentGroupTriList[index];
+            Gizmos.DrawLineStrip(triList, true);
+            var center = triList.Aggregate(Vector3.zero, (s, v) => s + v) / triList.Length;
             var faceAngle = Vector3.Angle(SceneView.currentDrawingSceneView.camera.transform.position, center);
             if (faceAngle is >= 0 and <= 90) {
                 Handles.Label(center, $"f{index}", index == intersectedSegmentGroupIndex ? selectedHandleStyle : handleStyle);
             }
-
-            segmentGroupTriList.Add(edgeVertices);
         }
-        
-        // 세그먼트 그룹 삼각형이 너무 정확히 맞닿아있으면, 삼각형 연결되는 틈새로
-        // 레이 테스트 시 틈 사이로 지나가서 실패하는 경우가 있다.
-        // 세그먼트 그룹 삼각형을 약간씩 키운다.
-        segmentGroupTriList = segmentGroupTriList.Select(triList => {
-            var center = triList.Aggregate(Vector3.zero, (s, v) => s + v) / 3;
-            return triList.Select(e => e + (e - center).normalized * 1e-3f).ToArray();
-        }).ToList();
 
         Gizmos.color = Color.white;
         Gizmos.DrawLine(Vector3.zero, userPos.position);
@@ -392,8 +379,8 @@ public class Sphere : MonoBehaviour {
         if (userPos != null) {
             intersectedSegmentGroupIndex = -1;
             var intersectPosCoords = Vector3.zero;
-            for (var index = 0; index < segmentGroupTriList.Count; index++) {
-                var triList = segmentGroupTriList[index];
+            for (var index = 0; index < SegmentGroupTriList.Length; index++) {
+                var triList = SegmentGroupTriList[index];
                 var position = userPos.position;
                 var intersectTuv = Intersection.GetTimeAndUvCoord(position, -position, triList[0], triList[1], triList[2]);
                 if (intersectTuv != null) {
@@ -405,7 +392,7 @@ public class Sphere : MonoBehaviour {
             }
 
             if (intersectedSegmentGroupIndex >= 0) {
-                var triList = segmentGroupTriList[intersectedSegmentGroupIndex];
+                var triList = SegmentGroupTriList[intersectedSegmentGroupIndex];
 
                 var (lat, lng) = CalculateLatLng(intersectPosCoords);
 
@@ -417,18 +404,6 @@ public class Sphere : MonoBehaviour {
                 centerPos.position = CalculateSegmentCenter(SubdivisionCount, segmentIndex);
 
                 var neighborPosListIndex = 0;
-                // foreach (var (neighbor, neighborLocalSegIndex) in GetNeighborsOfLocalSegmentIndex(false, SubdivisionCount,
-                //              localSegmentIndex)) {
-                //     if (neighbor == SegmentGroupNeighbor.Inside) {
-                //         var neighborSegmentIndex = ConvertToSegmentIndex(intersectedSegmentGroupIndex, neighborLocalSegIndex);
-                //         neighborPosList[neighborPosListIndex].position =
-                //             CalculateSegmentCenter(SubdivisionCount, neighborSegmentIndex);
-                //         neighborPosList[neighborPosListIndex].gameObject.SetActive(true);
-                //         neighborPosListIndex++;
-                //     } else if (neighbor == SegmentGroupNeighbor.O) {
-                //
-                //     }
-                // }
                 foreach (var neighborSegIndex in GetNeighborsOfSegmentIndex(SubdivisionCount, segmentIndex)) {
                     neighborPosList[neighborPosListIndex].position = CalculateSegmentCenter(SubdivisionCount, neighborSegIndex);
                     neighborPosList[neighborPosListIndex].gameObject.SetActive(true);
@@ -459,6 +434,18 @@ public class Sphere : MonoBehaviour {
                 OverlayText = "?! Not intersected !?";
             }
         }
+    }
+    
+    static Vector3[][] BuildSegmentGroupTriList() {
+        return VertIndexPerFaces.Select(e => {
+            var edgeVertices = e.Select(ee => Vertices[ee]).ToArray();
+
+            // 세그먼트 그룹 삼각형이 너무 정확히 맞닿아있으면, 삼각형 연결되는 틈새로
+            // 레이 테스트 시 틈 사이로 지나가서 실패하는 경우가 있다.
+            // 세그먼트 그룹 삼각형을 약간씩 키운다.
+            var center = edgeVertices.Aggregate(Vector3.zero, (s, v) => s + v) / edgeVertices.Length;
+            return edgeVertices.Select(ee => ee + (ee - center).normalized * 1e-3f).ToArray();
+        }).ToArray();
     }
 
     // AB 좌표의 B 좌표로 시작되는 세그먼트 서브 인덱스의 시작값을 계산한다.
