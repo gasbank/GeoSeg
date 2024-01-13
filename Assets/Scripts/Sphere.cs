@@ -14,7 +14,6 @@ public class Sphere : MonoBehaviour {
     public Transform intersectPos;
     public Transform centerPos;
     public Transform[] neighborPosList;
-    public int intersectedSegmentGroupIndex = -1;
 
     public static string OverlayText;
 
@@ -169,7 +168,7 @@ public class Sphere : MonoBehaviour {
 
     static readonly (int, EdgeNeighbor, EdgeNeighborOrigin, AxisOrientation)[][] NeighborFaceInfoList = BuildNeighborFaceInfoList();
 
-    const int SubdivisionCount = 4; //8192;
+    int SubdivisionCount = 4; //8192;
     const int RenderingSubdivisionCountLimit = 128;
 
     void Start() {
@@ -354,6 +353,38 @@ public class Sphere : MonoBehaviour {
             Handles.Label(v, $"vt{index}");
         }
 
+        var (userPosLat, userPosLng) = CalculateLatLng(userPos.position);
+
+        var segIndex = CalculateIntersectedSegmentGroupIndex(SubdivisionCount, userPosLat, userPosLng);
+
+        var (segGroupIndex, localSegIndex) = SplitSegIndexToSegGroupAndLocalSegmentIndex(segIndex);
+
+        centerPos.position = CalculateSegmentCenter(SubdivisionCount, segIndex);
+
+        var (centerLat, centerLng) = CalculateSegmentCenterLatLng(SubdivisionCount, segIndex);
+
+        // Neighbor (depth=1)
+        var neighborFaces = NeighborFaceInfoList[segGroupIndex];
+
+        //var (intersectLat, intersectLng) = CalculateLatLng(intersectPosCoords);
+
+        var (abCoords, top) = SplitLocalSegmentIndexToAbt(SubdivisionCount, localSegIndex);
+        
+        OverlayText = $"Intersection Lat: {userPosLat * Mathf.Rad2Deg}°, Lng: {userPosLng * Mathf.Rad2Deg}°\n"
+                      + $"Segment Group: {segGroupIndex} ABT: {(abCoords, top)}\n"
+                      + $" * Local segment index {localSegIndex}\n"
+                      + $" * Segment index {segIndex}\n"
+                      + "-----------\n"
+                      + $" * ABT (check): {SplitLocalSegmentIndexToAbt(SubdivisionCount, localSegIndex)}\n"
+                      + $" * Segment Group & ABT (check): {SplitSegIndexToSegGroupAndAbt(SubdivisionCount, segIndex)}\n"
+                      + "-----------\n"
+                      + $"Segment Center Lat: {centerLat * Mathf.Rad2Deg}°, Lng: {centerLng * Mathf.Rad2Deg}°\n"
+                      + $"Neighbor Faces: {neighborFaces[0]}, {neighborFaces[1]}, {neighborFaces[2]}";
+        
+        DrawDebugGizmos(segIndex);
+    }
+    void DrawDebugGizmos(int segmentIndex) {
+
         GUIStyle handleStyle = new() {
             normal = { textColor = Color.grey },
             fontSize = 20,
@@ -363,72 +394,21 @@ public class Sphere : MonoBehaviour {
             fontSize = 20,
         };
 
-
-
-        var (userPosLat, userPosLng) = CalculateLatLng(userPos.position);
-
-        var userPosFromLatLng = CalculatePosition(userPosLat, userPosLng);
-        
-        
-
-        intersectedSegmentGroupIndex = -1;
-        var intersectPosCoords = Vector3.zero;
-        for (var index = 0; index < SegmentGroupTriList.Length; index++) {
-            var triList = SegmentGroupTriList[index];
-            var intersectTuv = Intersection.GetTimeAndUvCoord(userPosFromLatLng, -userPosFromLatLng, triList[0], triList[1], triList[2]);
-            if (intersectTuv != null) {
-                intersectedSegmentGroupIndex = index;
-                intersectPosCoords = Intersection.GetTrilinearCoordinateOfTheHit(intersectTuv.Value.x, userPosFromLatLng, -userPosFromLatLng);
-                intersectPos.position = intersectPosCoords.normalized;
-                break;
-            }
-        }
-
-        if (intersectedSegmentGroupIndex >= 0) {
-            var triList = SegmentGroupTriList[intersectedSegmentGroupIndex];
-
-            var (lat, lng) = CalculateLatLng(intersectPosCoords);
-
-            var (abCoords, top) = CalculateAbCoords(triList[0], triList[1], triList[2], intersectPosCoords);
-
-            var localSegmentIndex = ConvertToLocalSegmentIndex(SubdivisionCount, abCoords.x, abCoords.y, top);
-            var segmentIndex = ConvertToSegmentIndex(intersectedSegmentGroupIndex, SubdivisionCount, abCoords.x, abCoords.y, top);
-
-            centerPos.position = CalculateSegmentCenter(SubdivisionCount, segmentIndex);
-
-            var neighborPosListIndex = 0;
-            foreach (var neighborSegIndex in GetNeighborsOfSegmentIndex(SubdivisionCount, segmentIndex)) {
-                neighborPosList[neighborPosListIndex].position = CalculateSegmentCenter(SubdivisionCount, neighborSegIndex);
-                neighborPosList[neighborPosListIndex].gameObject.SetActive(true);
-                neighborPosListIndex++;
-            }
-
-            for (var i = neighborPosListIndex; i < neighborPosList.Length; i++) {
-                neighborPosList[i].gameObject.SetActive(false);
-            }
-
-            var (centerLat, centerLng) = CalculateSegmentCenterLatLng(SubdivisionCount, segmentIndex);
-
-            // Neighbor (depth=1)
-            var neighborFaces = NeighborFaceInfoList[intersectedSegmentGroupIndex];
-
-            OverlayText = $"Intersection Lat: {lat * Mathf.Rad2Deg}°, Lng: {lng * Mathf.Rad2Deg}°\n"
-                          + $"Segment Group: {intersectedSegmentGroupIndex} ABT: {(abCoords, top)}\n"
-                          + $" * Local segment index {localSegmentIndex}\n"
-                          + $" * Segment index {segmentIndex}\n"
-                          + "-----------\n"
-                          + $" * ABT (check): {SplitLocalSegmentIndexToAbt(SubdivisionCount, localSegmentIndex)}\n"
-                          + $" * Segment Group & ABT (check): {SplitSegIndexToSegGroupAndAbt(SubdivisionCount, segmentIndex)}\n"
-                          + "-----------\n"
-                          + $"Segment Center Lat: {centerLat * Mathf.Rad2Deg}°, Lng: {centerLng * Mathf.Rad2Deg}°\n"
-                          + $"Neighbor Faces: {neighborFaces[0]}, {neighborFaces[1]}, {neighborFaces[2]}";
-        } else {
-            Debug.Log("?! Not intersected !?");
-            OverlayText = "?! Not intersected !?";
-        }
-        
         Gizmos.color = Color.white;
-        Gizmos.DrawLine(Vector3.zero, userPosFromLatLng);
+        Gizmos.DrawLine(Vector3.zero, userPos.position);
+        
+        var neighborPosListIndex = 0;
+        foreach (var neighborSegIndex in GetNeighborsOfSegmentIndex(SubdivisionCount, segmentIndex)) {
+            neighborPosList[neighborPosListIndex].position = CalculateSegmentCenter(SubdivisionCount, neighborSegIndex);
+            neighborPosList[neighborPosListIndex].gameObject.SetActive(true);
+            neighborPosListIndex++;
+        }
+
+        for (var i = neighborPosListIndex; i < neighborPosList.Length; i++) {
+            neighborPosList[i].gameObject.SetActive(false);
+        }
+
+        var (segGroupIndex, _) = SplitSegIndexToSegGroupAndLocalSegmentIndex(segmentIndex);
 
         for (var index = 0; index < SegmentGroupTriList.Length; index++) {
             var triList = SegmentGroupTriList[index];
@@ -436,20 +416,48 @@ public class Sphere : MonoBehaviour {
             var center = triList.Aggregate(Vector3.zero, (s, v) => s + v) / triList.Length;
             var faceAngle = Vector3.Angle(SceneView.currentDrawingSceneView.camera.transform.position, center);
             if (faceAngle is >= 0 and <= 90) {
-                Handles.Label(center, $"f{index}", index == intersectedSegmentGroupIndex ? selectedHandleStyle : handleStyle);
+                Handles.Label(center, $"f{index}", index == segGroupIndex ? selectedHandleStyle : handleStyle);
             }
         }
     }
-    static Vector3 CalculatePosition(float lat, float lng) {
+    static int CalculateIntersectedSegmentGroupIndex(int n, float userPosLat, float userPosLng) {
+
+        var userPosFromLatLng = CalculateUnitSpherePosition(userPosLat, userPosLng) * 2;
+
+        var intersectedSegmentGroupIndex = -1;
+        var intersectPosCoords = Vector3.zero;
+        for (var index = 0; index < SegmentGroupTriList.Length; index++) {
+            var segTriList = SegmentGroupTriList[index];
+            var intersectTuv = Intersection.GetTimeAndUvCoord(userPosFromLatLng, -userPosFromLatLng, segTriList[0], segTriList[1], segTriList[2]);
+            if (intersectTuv != null) {
+                intersectedSegmentGroupIndex = index;
+                intersectPosCoords =
+                    Intersection.GetTrilinearCoordinateOfTheHit(intersectTuv.Value.x, userPosFromLatLng, -userPosFromLatLng);
+                break;
+            }
+        }
+
+        if (intersectedSegmentGroupIndex is < 0 or >= 20) {
+            throw new("Logic Error (no intersection)");
+        }
+
+        var triList = SegmentGroupTriList[intersectedSegmentGroupIndex];
+
+        var (abCoords, top) = CalculateAbCoords(n, triList[0], triList[1], triList[2], intersectPosCoords);
+
+        var localSegmentIndex = ConvertToLocalSegmentIndex(n, abCoords.x, abCoords.y, top);
+        var segmentIndex = ConvertToSegmentIndex(intersectedSegmentGroupIndex, n, abCoords.x, abCoords.y, top);
+
+        return segmentIndex;
+    }
+    static Vector3 CalculateUnitSpherePosition(float lat, float lng) {
         var cLat = Mathf.Cos(lat);
         var sLat = Mathf.Sin(lat);
 
         var cLng = Mathf.Cos(lng);
         var sLng = Mathf.Sin(lng);
 
-        var v = new Vector3(cLng * cLat, sLat, sLng * cLat);
-        
-        return v * 2;
+        return new Vector3(cLng * cLat, sLat, sLng * cLat);
     }
 
     static Vector3[][] BuildSegmentGroupTriList() {
@@ -600,7 +608,7 @@ public class Sphere : MonoBehaviour {
     }
 
     // 세 꼭지점(ip0, ip1, ip2)으로 정의되는 삼각형 내의 특정 지점(intersect)를 AB 좌표, top여부로 변환하여 반환한다.
-    static Tuple<Vector2Int, bool> CalculateAbCoords(Vector3 ip0, Vector3 ip1, Vector3 ip2, Vector3 intersect) {
+    static Tuple<Vector2Int, bool> CalculateAbCoords(int n, Vector3 ip0, Vector3 ip1, Vector3 ip2, Vector3 intersect) {
         var p = intersect - ip0;
         var p01 = ip1 - ip0;
         var p02 = ip2 - ip0;
@@ -613,8 +621,8 @@ public class Sphere : MonoBehaviour {
         var ap = a - (p - a * p01).magnitude / (tanDelta * p01.magnitude);
         var bp = b - (p - b * p02).magnitude / (tanDelta * p02.magnitude);
 
-        var apf = math.modf(ap * SubdivisionCount, out var api);
-        var bpf = math.modf(bp * SubdivisionCount, out var bpi);
+        var apf = math.modf(ap * n, out var api);
+        var bpf = math.modf(bp * n, out var bpi);
 
         //ap * SubdivisionCount
         return Tuple.Create(new Vector2Int((int)api, (int)bpi), apf + bpf > 1);
