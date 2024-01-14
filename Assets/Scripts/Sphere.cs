@@ -58,7 +58,8 @@ public class Sphere : MonoBehaviour {
 
         const int testSubdivisionCount = 8192;
         Debug.Log($"Test Subdivision Count = {testSubdivisionCount}");
-        Debug.Log($"Seg ID of (0,0) = {Geocoding.CalculateSegmentIndexFromLatLng(testSubdivisionCount, 0, 0)}");
+        Debug.Log($"Seg ID of (0, 0) = {Geocoding.CalculateSegmentIndexFromLatLng(testSubdivisionCount, 0, 0)}");
+        Debug.Log($"Seg ID of (37.5220141 deg, 126.9344266 deg) = {Geocoding.CalculateSegmentIndexFromLatLng(testSubdivisionCount, 37.5220141f * Mathf.Deg2Rad, 126.9344266f * Mathf.Deg2Rad)}");
         for (var i = 0; i < Mathf.Min(SubdivisionCount * SubdivisionCount, 16); i++) {
             var (lat, lng) = Geocoding.CalculateSegmentCenterLatLng(testSubdivisionCount, i);
             Debug.Log($"Seg #{i} Center: {Geocoding.CalculateSegmentCenter(testSubdivisionCount, i)} / LL: {(lat, lng)} / LL (deg): {(lat * Mathf.Rad2Deg, lng * Mathf.Rad2Deg)}");
