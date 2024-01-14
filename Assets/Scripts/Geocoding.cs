@@ -719,60 +719,74 @@ public static class Geocoding {
 
         var (ab, t) = SplitLocalSegmentIndexToAbt(n, localSegmentIndex);
 
-        // i) 정이십면체 그대로인 상태일 때는 특수한 케이스이다.
+        // i) 정이십면체 그대로인 상태일 때는 특수한 케이스이다. (테스트 안해봄)
         if (n == 1) {
-            return new[] {
-                // 하단 행
-                ConvertAbtToNeighborAbt(canonical, n, new(ab.x, ab.y - 1), false),
-                ConvertAbtToNeighborAbt(canonical, n, new(ab.x, ab.y - 1), true),
-                ConvertAbtToNeighborAbt(canonical, n, new(ab.x + 1, ab.y - 1), false),
-                // 지금 행
-                ConvertAbtToNeighborAbt(canonical, n, new(ab.x - 1, ab.y), false),
-                ConvertAbtToNeighborAbt(canonical, n, new(ab.x - 1, ab.y), true),
-                ConvertAbtToNeighborAbt(canonical, n, new(ab.x, ab.y), true),
-                ConvertAbtToNeighborAbt(canonical, n, new(ab.x + 1, ab.y), false),
-                // 상단 행
-                ConvertAbtToNeighborAbt(canonical, n, new(ab.x - 1, ab.y + 1), false),
-                ConvertAbtToNeighborAbt(canonical, n, new(ab.x, ab.y + 1), false),
-            };
+            // n=1일 때는 top, bottom이라는 개념 없이 모두 bottom이다.
+            return NeighborOffsetSubdivisionOne.Select(e => {
+                var (da, db, dt) = e;
+                return ConvertAbtToNeighborAbt(canonical, n, new(ab.x + da, ab.y + db), dt);
+            }).ToArray();
         }
 
         // iii) 그 밖의 경우
         if (t) {
             // top인 경우
-            return new[] {
-                // 하단 행
-                ConvertAbtToNeighborAbt(canonical, n, new(ab.x, ab.y - 1), true),
-                ConvertAbtToNeighborAbt(canonical, n, new(ab.x + 1, ab.y - 1), false),
-                ConvertAbtToNeighborAbt(canonical, n, new(ab.x + 1, ab.y - 1), true),
-                // 지금 행
-                ConvertAbtToNeighborAbt(canonical, n, new(ab.x - 1, ab.y), true),
-                ConvertAbtToNeighborAbt(canonical, n, new(ab.x, ab.y), false),
-                ConvertAbtToNeighborAbt(canonical, n, new(ab.x + 1, ab.y), false),
-                ConvertAbtToNeighborAbt(canonical, n, new(ab.x + 1, ab.y), true),
-                // 상단 행
-                ConvertAbtToNeighborAbt(canonical, n, new(ab.x - 1, ab.y + 1), false),
-                ConvertAbtToNeighborAbt(canonical, n, new(ab.x - 1, ab.y + 1), true),
-                ConvertAbtToNeighborAbt(canonical, n, new(ab.x, ab.y + 1), false),
-                ConvertAbtToNeighborAbt(canonical, n, new(ab.x, ab.y + 1), true),
-                ConvertAbtToNeighborAbt(canonical, n, new(ab.x + 1, ab.y + 1), false),
-            };
+            return NeighborOffsetTop.Select(e => {
+                var (da, db, dt) = e;
+                return ConvertAbtToNeighborAbt(canonical, n, new(ab.x + da, ab.y + db), dt);
+            }).ToArray();
         }
 
-        // top이 아닌 경우
+        // bottom인 경우에는 코너인지 아닌지에 따라서도 처리가 달라진다.
         return GetLocalSegmentIndexNeighborsAsAbtCase3Bottom(canonical, n, ab);
     }
+    
+    static readonly (int, int, bool)[] NeighborOffsetSubdivisionOne = {
+        // 하단 행
+        (0, -1, false),
+        (0, -1, true),
+        (1, -1, false),
+        // 지금 행
+        (-1, 0, false),
+        (-1, 0, true),
+        (0, 0, true),
+        (1, 0, false),
+        // 상단 행
+        (-1, 1, false),
+        (0, 1, false),
+    };
+    
+    static readonly (int, int, bool)[] NeighborOffsetTop = {
+        // 하단 행
+        (0, -1, true),
+        (1, -1, false),
+        (1, -1, true),
+        // 지금 행
+        (-1, 0, true),
+        (0, 0, false),
+        (1, 0, false),
+        (1, 0, true),
+        // 상단 행
+        (-1, 1, false),
+        (-1, 1, true),
+        (0, 1, false),
+        (0, 1, true),
+        (1, 1, false),
+    };
 
-    static readonly (int, int, bool)[] Bottom3Offset = {
+    static readonly (int, int, bool)[] NeighborOffsetBottom = {
+        // 하단 행
         (-1, -1, true),
         (0, -1, false),
         (0, -1, true),
         (1, -1, false),
         (1, -1, true),
+        // 지금 행
         (-1, 0, false),
         (-1, 0, true),
         (0, 0, true),
         (1, 0, false),
+        // 상단 행
         (-1, 1, false),
         (-1, 1, true),
         (0, 1, false),
@@ -790,28 +804,10 @@ public static class Geocoding {
             skipIndex = 10;
         }
 
-        return Bottom3Offset.Where((_, i) => i != skipIndex).Select(e => {
+        return NeighborOffsetBottom.Where((_, i) => i != skipIndex).Select(e => {
             var (da, db, dt) = e;
             return ConvertAbtToNeighborAbt(canonical, n, new(ab.x + da, ab.y + db), dt);
         }).ToArray();
-
-        /*return new[] {
-            // 하단 행
-            ConvertAbtToNeighborAbt(canonical, n, new(ab.x - 1, ab.y - 1), true),
-            ConvertAbtToNeighborAbt(canonical, n, new(ab.x, ab.y - 1), false),
-            ConvertAbtToNeighborAbt(canonical, n, new(ab.x, ab.y - 1), true),
-            ConvertAbtToNeighborAbt(canonical, n, new(ab.x + 1, ab.y - 1), false),
-            ConvertAbtToNeighborAbt(canonical, n, new(ab.x + 1, ab.y - 1), true),
-            // 지금 행
-            ConvertAbtToNeighborAbt(canonical, n, new(ab.x - 1, ab.y), false),
-            ConvertAbtToNeighborAbt(canonical, n, new(ab.x - 1, ab.y), true),
-            ConvertAbtToNeighborAbt(canonical, n, new(ab.x, ab.y), true),
-            ConvertAbtToNeighborAbt(canonical, n, new(ab.x + 1, ab.y), false),
-            // 상단 행
-            ConvertAbtToNeighborAbt(canonical, n, new(ab.x - 1, ab.y + 1), false),
-            ConvertAbtToNeighborAbt(canonical, n, new(ab.x - 1, ab.y + 1), true),
-            ConvertAbtToNeighborAbt(canonical, n, new(ab.x, ab.y + 1), false),
-        };*/
     }
 
     [SuppressMessage("ReSharper", "InconsistentNaming")]
