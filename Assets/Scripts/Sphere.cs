@@ -55,6 +55,10 @@ public class Sphere : MonoBehaviour {
             };
             go.name = $"Segment Group {index}";
         }
+
+        for (var i = 0; i < Mathf.Min(SubdivisionCount * SubdivisionCount, 16); i++) {
+            Debug.Log($"Seg #{i} Center: {CalculateSegmentCenter(SubdivisionCount, i)} / LL: {Geocoding.CalculateSegmentCenterLatLng(SubdivisionCount, i)}");
+        }
     }
 
 #if UNITY_EDITOR
