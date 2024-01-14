@@ -56,10 +56,11 @@ public class Sphere : MonoBehaviour {
             go.name = $"Segment Group {index}";
         }
 
-        const int testSubdivisionCount = 4;
+        const int testSubdivisionCount = 8192;
         Debug.Log($"Test Subdivision Count = {testSubdivisionCount}");
         Debug.Log($"Seg ID of (0, 0) = {Geocoding.CalculateSegmentIndexFromLatLng(testSubdivisionCount, 0, 0)}");
         Debug.Log($"Neighbors of Seg ID (0) = {string.Join(", ", Geocoding.GetNeighborsOfSegmentIndex(testSubdivisionCount, 0))}");
+        Debug.Log($"Neighbors of Seg ID (501257710) = {string.Join(", ", Geocoding.GetNeighborsOfSegmentIndex(testSubdivisionCount, 501257710))}");
         Debug.Log($"Seg ID of (37.5220141 deg, 126.9344266 deg) = {Geocoding.CalculateSegmentIndexFromLatLng(testSubdivisionCount, 37.5220141f * Mathf.Deg2Rad, 126.9344266f * Mathf.Deg2Rad)}");
         for (var i = 0; i < Mathf.Min(SubdivisionCount * SubdivisionCount, 16); i++) {
             var (lat, lng) = Geocoding.CalculateSegmentCenterLatLng(testSubdivisionCount, i);
