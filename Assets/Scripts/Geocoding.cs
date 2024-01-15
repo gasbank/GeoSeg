@@ -295,12 +295,12 @@ public static class Geocoding {
     }
 
 
-    public static int CalculateSegmentIndexFromLatLng(int n, float userPosLat, float userPosLng) {
+    public static int CalculateSegmentIndexFromLatLng(int n, float userPosLat, float userPosLng, out Vector3 intersect) {
 
         var userPosFromLatLng = CalculateUnitSpherePosition(userPosLat, userPosLng) * 2;
 
         var segGroupIndex = -1;
-        var intersect = Vector3.zero;
+        intersect = Vector3.zero;
         for (var index = 0; index < SegmentGroupTriList.Length; index++) {
             var segTriList = SegmentGroupTriList[index];
             var intersectTuv = Intersection.GetTimeAndUvCoord(userPosFromLatLng, -userPosFromLatLng, segTriList[0], segTriList[1],
