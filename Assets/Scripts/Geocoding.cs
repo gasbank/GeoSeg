@@ -515,9 +515,15 @@ public static class Geocoding {
 
         var ap = a - (p - a * p01).magnitude / (tanDelta * p01.magnitude);
         var bp = b - (p - b * p02).magnitude / (tanDelta * p02.magnitude);
+        
+        //Debug.Log($"Original: {intersect.x}, {intersect.y}, {intersect.z}");
+        var check = ip0 + ap * p01 + bp * p02;
+        //Debug.Log($"Check: {check.x}, {check.y}, {check.z}");
 
         var apf = math.modf(ap * n, out var api);
         var bpf = math.modf(bp * n, out var bpi);
+        
+        //Debug.Log($"api: {apf}, bpi: {bpf}, sum: {apf + bpf}");
 
         //ap * SubdivisionCount
         return Tuple.Create(new Vector2Int((int)api, (int)bpi), apf + bpf > 1);

@@ -20,7 +20,8 @@ public class Sphere : MonoBehaviour {
     public static string OverlayText;
 
     [Range(1, 8192)] public int subdivisionCount = 8192;
-    const int RenderingSubdivisionCountLimit = 360;
+    //const int RenderingSubdivisionCountLimit = 360;
+    const int RenderingSubdivisionCountLimit = 8;
 
     void Start() {
         var mesh = new Mesh { vertices = Geocoding.Vertices };
@@ -83,10 +84,12 @@ public class Sphere : MonoBehaviour {
         var (userPosLat, userPosLng) = Geocoding.CalculateLatLng(userPos.position);
         
         intersectPos.position = Geocoding.CalculateUnitSpherePosition(userPosLat, userPosLng);
+        intersectPos.LookAt(Vector3.zero);
 
         var segIndex = Geocoding.CalculateSegmentIndexFromLatLng(subdivisionCount, userPosLat, userPosLng, out var planeIntersectPos);
 
-        intersect2Pos.position = planeIntersectPos.normalized;
+        intersect2Pos.position = planeIntersectPos;
+        intersect2Pos.LookAt(Vector3.zero);
 
         var (segGroupIndex, localSegIndex) = Geocoding.SplitSegIndexToSegGroupAndLocalSegmentIndex(segIndex);
 
@@ -135,19 +138,26 @@ public class Sphere : MonoBehaviour {
         
         centerPos.position = Geocoding.CalculateSegmentCenter(subdivisionCount, segIndex);
 
-        Gizmos.color = Color.white;
-        Gizmos.DrawLine(Vector3.zero, userPos.position);
-
         var neighborPosListIndex = 0;
         foreach (var neighborSegIndex in Geocoding.GetNeighborsOfSegmentIndex(subdivisionCount, segIndex)) {
             neighborPosList[neighborPosListIndex].position = Geocoding.CalculateSegmentCenter(subdivisionCount, neighborSegIndex);
             neighborPosList[neighborPosListIndex].gameObject.SetActive(true);
             
-            Gizmos.color = Color.white;
-            Gizmos.DrawLineStrip(Geocoding.CalculateSegmentCorners(subdivisionCount, neighborSegIndex, true), true);
-            
-            Gizmos.color = Color.yellow;
-            Gizmos.DrawLineStrip(Geocoding.CalculateSegmentCorners(subdivisionCount, neighborSegIndex, false), true);
+            // Gizmos.color = Color.blue;
+            //
+            // var vertsNormalized = Geocoding.CalculateSegmentCorners(subdivisionCount, neighborSegIndex, true);
+            // Gizmos.DrawLineStrip(vertsNormalized, true);
+            //
+            // Gizmos.color = Color.red;
+            // var vertsNotNormalized = Geocoding.CalculateSegmentCorners(subdivisionCount, neighborSegIndex, false);
+            // Gizmos.DrawLineStrip(vertsNotNormalized, true);
+            //
+            // Gizmos.DrawMesh(new() {
+            //     vertices = vertsNotNormalized,
+            //     normals = vertsNormalized,
+            //     triangles = new[] { 0, 1, 2, 0, 2, 1 },
+            // });
+
             
             neighborPosListIndex++;
         }
@@ -167,6 +177,11 @@ public class Sphere : MonoBehaviour {
                 Handles.Label(center, $"f{index}", index == segGroupIndex ? selectedHandleStyle : handleStyle);
             }
         }
+        
+        
+        Gizmos.color = Color.white;
+        Gizmos.DrawLine(Vector3.zero, userPos.position);
+
     }
 
     [ContextMenu("Generate Source Code")]
