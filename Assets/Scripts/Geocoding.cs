@@ -341,7 +341,7 @@ public static class Geocoding {
             // 레이 테스트 시 틈 사이로 지나가서 실패하는 경우가 있다.
             // 세그먼트 그룹 삼각형을 약간씩 키운다.
             var center = edgeVertices.Aggregate(Vector3.zero, (s, v) => s + v) / edgeVertices.Length;
-            return edgeVertices.Select(ee => ee + (ee - center).normalized * 1e-3f).ToArray();
+            return edgeVertices.Select(ee => ee + (ee - center).normalized * 1e-6f).ToArray();
         }).ToArray();
     }
 
