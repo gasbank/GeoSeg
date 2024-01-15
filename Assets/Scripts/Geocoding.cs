@@ -431,14 +431,36 @@ public static class Geocoding {
         var (abCoords, top) = SplitLocalSegmentIndexToAbt(n, localSegIndex);
         return Tuple.Create(segmentGroupIndex, abCoords, top);
     }
+    
+    // Seg Index의 세 정점 위치를 계산해서 반환
+    public static Vector3[] CalculateSegmentCorners(int n, int segmentIndex, bool normalize) {
+        var (segGroupIndex, ab, t) = SplitSegIndexToSegGroupAndAbt(n, segmentIndex);
+        var segGroupVerts = VertIndexPerFaces[segGroupIndex].Select(e => Vertices[e]).ToArray();
+        var axisA = (segGroupVerts[1] - segGroupVerts[0]) / n;
+        var axisB = (segGroupVerts[2] - segGroupVerts[0]) / n;
+        
+        var parallelogramCorner = segGroupVerts[0] + ab.x * axisA + ab.y * axisB;
+        
+        var ret = t ? new[] {
+            parallelogramCorner + axisA + axisB,
+            parallelogramCorner + axisA,
+            parallelogramCorner + axisB,
+        } : new[] {
+            parallelogramCorner,
+            parallelogramCorner + axisA,
+            parallelogramCorner + axisB,
+        };
 
-    // Seg Index의 중심 좌표를 계산해서 반환
+        return normalize ? ret.Select(e => e.normalized).ToArray() : ret;
+    }
+    
+    // Seg Index의 중심 좌표를 계산해서 반환 (정규화되어 단위구 위의 점으로 변환되어 반환)
     public static Vector3 CalculateSegmentCenter(int n, int segmentIndex) {
         var (segGroupIndex, ab, t) = SplitSegIndexToSegGroupAndAbt(n, segmentIndex);
         var segGroupVerts = VertIndexPerFaces[segGroupIndex].Select(e => Vertices[e]).ToArray();
         var axisA = (segGroupVerts[1] - segGroupVerts[0]) / n;
         var axisB = (segGroupVerts[2] - segGroupVerts[0]) / n;
-
+        
         var parallelogramCorner = segGroupVerts[0] + ab.x * axisA + ab.y * axisB;
         var offset = axisA + axisB;
         return (parallelogramCorner + offset / 3 * (t ? 2 : 1)).normalized;

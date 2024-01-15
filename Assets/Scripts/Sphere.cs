@@ -142,6 +142,13 @@ public class Sphere : MonoBehaviour {
         foreach (var neighborSegIndex in Geocoding.GetNeighborsOfSegmentIndex(subdivisionCount, segIndex)) {
             neighborPosList[neighborPosListIndex].position = Geocoding.CalculateSegmentCenter(subdivisionCount, neighborSegIndex);
             neighborPosList[neighborPosListIndex].gameObject.SetActive(true);
+            
+            Gizmos.color = Color.white;
+            Gizmos.DrawLineStrip(Geocoding.CalculateSegmentCorners(subdivisionCount, neighborSegIndex, true), true);
+            
+            Gizmos.color = Color.yellow;
+            Gizmos.DrawLineStrip(Geocoding.CalculateSegmentCorners(subdivisionCount, neighborSegIndex, false), true);
+            
             neighborPosListIndex++;
         }
 
