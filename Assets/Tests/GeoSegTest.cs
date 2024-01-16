@@ -499,14 +499,16 @@ public class GeoSegTest {
 
     [Test]
     public void TestSplitDenseSegIndexToSegGroupAndLocalSegmentIndex() {
+        const int subdivisionCountLimit = 14654;
+        
         Assert.Catch<ArgumentOutOfRangeException>(() => Geocoding.SplitDenseSegIndexToSegGroupAndLocalSegmentIndex(0, 0));
         Assert.Catch<ArgumentOutOfRangeException>(() => Geocoding.SplitDenseSegIndexToSegGroupAndLocalSegmentIndex(-1, 0));
-        Assert.Catch<ArgumentOutOfRangeException>(() => Geocoding.SplitDenseSegIndexToSegGroupAndLocalSegmentIndex(14655, 0));
+        Assert.Catch<ArgumentOutOfRangeException>(() => Geocoding.SplitDenseSegIndexToSegGroupAndLocalSegmentIndex(subdivisionCountLimit + 1, 0));
         
         Assert.Catch<ArgumentOutOfRangeException>(() => Geocoding.SplitDenseSegIndexToSegGroupAndLocalSegmentIndex(1, -1));
         Assert.Catch<ArgumentOutOfRangeException>(() => Geocoding.SplitDenseSegIndexToSegGroupAndLocalSegmentIndex(1, 20));
 
-        for (var i = 0; i < 20; i++) {
+        for (var i = 0; i < Geocoding.GroupCount; i++) {
             Assert.AreEqual((i, 0), Geocoding.SplitDenseSegIndexToSegGroupAndLocalSegmentIndex(1, i));
         }
 
@@ -518,12 +520,12 @@ public class GeoSegTest {
         TestSplitDenseSegReverse(2);
         TestSplitDenseSegReverse(10);
 
-        const int subdivisionCount = 14654;
         // ReSharper disable once ConvertToConstant.Local
-        var unsignedLastSegmentIndex = (long)subdivisionCount * subdivisionCount * 20 - 1;
+        var unsignedLastSegmentIndex = (long)subdivisionCountLimit * subdivisionCountLimit * Geocoding.GroupCount - 1;
         // ReSharper disable once IntVariableOverflowInUncheckedContext
-        Assert.AreEqual((Geocoding.GroupCount - 1, subdivisionCount * subdivisionCount - 1), Geocoding.SplitDenseSegIndexToSegGroupAndLocalSegmentIndex(subdivisionCount, (int)unsignedLastSegmentIndex));
+        Assert.AreEqual((Geocoding.GroupCount - 1, subdivisionCountLimit * subdivisionCountLimit - 1), Geocoding.SplitDenseSegIndexToSegGroupAndLocalSegmentIndex(subdivisionCountLimit, (int)unsignedLastSegmentIndex));
     }
+    
     static void TestSplitDenseSeg(int subdivisionCount) {
         var segPerGroup = subdivisionCount * subdivisionCount;
         var segIndexCounter = 0;

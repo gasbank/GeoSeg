@@ -313,7 +313,7 @@ public static class Geocoding {
             }
         }
 
-        if (segGroupIndex is < 0 or >= 20) {
+        if (segGroupIndex is < 0 or >= GroupCount) {
             throw new("Logic Error (no intersection)");
         }
 
@@ -640,7 +640,7 @@ public static class Geocoding {
 
     static (int, EdgeNeighbor, EdgeNeighborOrigin, AxisOrientation) GetNeighborInfoOfSegGroupIndex(int segGroupIndex,
         SegmentGroupNeighbor neighbor) {
-        if (segGroupIndex is < 0 or >= 20) {
+        if (segGroupIndex is < 0 or >= GroupCount) {
             throw new ArgumentOutOfRangeException(nameof(segGroupIndex), segGroupIndex, null);
         }
 
@@ -1184,7 +1184,7 @@ public static class Geocoding {
 
         StringBuilder sb = new();
         
-        sb.AppendLine("const int VertIndexPerFaces[20][3] = {");
+        sb.AppendLine($"const int VertIndexPerFaces[{GroupCount}][3] = {{");
         for (var i = 0; i < VertIndexPerFaces.Length; i++) {
             var e = VertIndexPerFaces[i];
             sb.AppendLine($"    {{{e[0]}, {e[1]}, {e[2]}}}, // Face {i}");
@@ -1202,7 +1202,7 @@ public static class Geocoding {
         
         sb.AppendLine();
 
-        sb.AppendLine("const Vector3 SegmentGroupTriList[20][3] = {");
+        sb.AppendLine($"const Vector3 SegmentGroupTriList[{GroupCount}][3] = {{");
         foreach (var e in SegmentGroupTriList) {
             sb.AppendLine("    {");
             foreach (var ee in e) {
@@ -1216,7 +1216,7 @@ public static class Geocoding {
 
         sb.AppendLine();
 
-        sb.AppendLine("const AxisOrientation FaceAxisOrientationList[20] = {");
+        sb.AppendLine($"const AxisOrientation FaceAxisOrientationList[{GroupCount}] = {{");
         foreach (var e in FaceAxisOrientationList) {
             sb.AppendLine($"    AxisOrientation_{e},");
         }
@@ -1225,7 +1225,7 @@ public static class Geocoding {
         
         sb.AppendLine();
         
-        sb.AppendLine("const NeighborInfo NeighborFaceInfoList[20][3] = {");
+        sb.AppendLine($"const NeighborInfo NeighborFaceInfoList[{GroupCount}][3] = {{");
         foreach (var e in NeighborFaceInfoList) {
             sb.AppendLine("    {");
             foreach (var ee in e) {
