@@ -432,7 +432,7 @@ public static class Geocoding {
             throw new ArgumentOutOfRangeException(nameof(n), n, null);
         }
 
-        var segmentCountPerGroup = n * n;
+        var segmentCountPerGroup = CalculateSegmentCountPerGroup(n);
         
         var unsignedMaxSegCount = (long)segmentCountPerGroup * GroupCount;
         
@@ -456,6 +456,14 @@ public static class Geocoding {
 
         // (segmentGroupIndex, localSegIndex)
         return ((int)quotient, (int)remainder);
+    }
+    
+    static int CalculateSegmentCountPerGroup(int n) {
+        if (n < 1) {
+            throw new ArgumentOutOfRangeException(nameof(n), n, null);
+        }
+        
+        return n * n;
     }
 
     // Seg Index를 Seg Group & ABT로 변환해서 반환
@@ -531,8 +539,20 @@ public static class Geocoding {
     }
 
     static int ConvertToSegmentIndex(int segmentGroupIndex, int localSegmentIndex) {
-
         return (segmentGroupIndex << LocalSegmentIndexBitCount) | localSegmentIndex;
+    }
+    
+    public static int ConvertToDenseSegmentIndex(int n, int segmentGroupIndex, int localSegmentIndex) {
+        var segmentCountPerGroup = CalculateSegmentCountPerGroup(n);
+        if (segmentGroupIndex is < 0 or >= GroupCount) {
+            throw new ArgumentOutOfRangeException(nameof(segmentGroupIndex), segmentGroupIndex, null);
+        }
+
+        if (localSegmentIndex < 0 || localSegmentIndex >= segmentCountPerGroup) {
+            throw new ArgumentOutOfRangeException(nameof(localSegmentIndex), localSegmentIndex, null);
+        }
+
+        return segmentCountPerGroup * segmentGroupIndex + localSegmentIndex;
     }
 
     // 세 꼭지점(ip0, ip1, ip2)으로 정의되는 삼각형 내의 특정 지점(intersect)를 AB 좌표, top여부로 변환하여 반환한다.
@@ -990,8 +1010,8 @@ public static class Geocoding {
         Outside,
     }
 
-// ABT 좌표계가 가리키는 위치가 평행사변형의 상단인지 하단인지 판단하여 반환한다.
-// 상단이면 true, 하단이면 false를 반환하며, 범위를 벗어나는 경우에는 예외를 던진다.
+    // ABT 좌표계가 가리키는 위치가 평행사변형의 상단인지 하단인지 판단하여 반환한다.
+    // 상단이면 true, 하단이면 false를 반환하며, 범위를 벗어나는 경우에는 예외를 던진다.
     public static ParallelogramGroup CheckBottomOrTopFromParallelogram(int n, Vector2Int ab, bool t) {
         if (n < 1) {
             throw new ArgumentOutOfRangeException(nameof(n));
