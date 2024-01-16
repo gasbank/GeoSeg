@@ -321,7 +321,7 @@ public static class Geocoding {
 
         var (abCoords, top) = CalculateAbCoords(n, triList[0], triList[1], triList[2], intersect);
 
-        return ConvertToDenseSegmentIndex(segGroupIndex, n, abCoords.x, abCoords.y, top);
+        return ConvertToSegmentIndex(segGroupIndex, n, abCoords.x, abCoords.y, top);
     }
     public static Vector3 CalculateUnitSpherePosition(float lat, float lng) {
         var cLat = Mathf.Cos(lat);
@@ -415,19 +415,9 @@ public static class Geocoding {
         return new(new(a, b), (b % 2 == 0 && localSegmentIndex % 2 == 0 || b % 2 == 1 && localSegmentIndex % 2 == 1) == false);
     }
 
-    // 32비트 중 MSB 1비트는 부호 비트로 남겨두고, 세그먼트 그룹 인덱스는 총 0~19 범위이므로 5비트가 필요하다.
-    // 즉 32비트에서 1비트+5비트를 제외한 비트를 local segment index 공간으로 쓸 수 있다.
-    // const int LocalSegmentIndexBitCount = 32 - 1 - 5;
-    //
-    // public static (int, int) SplitSegIndexToSegGroupAndLocalSegmentIndex(int segmentIndex) {
-    //     var segmentGroupIndex = segmentIndex >> LocalSegmentIndexBitCount;
-    //     var localSegIndex = segmentIndex & ((1 << LocalSegmentIndexBitCount) - 1);
-    //     return (segmentGroupIndex, localSegIndex);
-    // }
-
     public const int GroupCount = 20;
 
-    public static (int, int) SplitDenseSegIndexToSegGroupAndLocalSegmentIndex(int n, int segmentIndex) {
+    public static (int, int) SplitSegIndexToSegGroupAndLocalSegmentIndex(int n, int segmentIndex) {
         if (n < 1) {
             throw new ArgumentOutOfRangeException(nameof(n), n, null);
         }
@@ -468,7 +458,7 @@ public static class Geocoding {
 
     // Seg Index를 Seg Group & ABT로 변환해서 반환
     public static Tuple<int, Vector2Int, bool> SplitSegIndexToSegGroupAndAbt(int n, int segmentIndex) {
-        var (segmentGroupIndex, localSegIndex) = SplitDenseSegIndexToSegGroupAndLocalSegmentIndex(n, segmentIndex);
+        var (segmentGroupIndex, localSegIndex) = SplitSegIndexToSegGroupAndLocalSegmentIndex(n, segmentIndex);
         var (abCoords, top) = SplitLocalSegmentIndexToAbt(n, localSegIndex);
         return Tuple.Create(segmentGroupIndex, abCoords, top);
     }
@@ -534,17 +524,13 @@ public static class Geocoding {
     }
 
     // 세그먼트 그룹 인덱스, n(분할 횟수), AB 좌표, top여부 네 개를 조합 해 전역 세그먼트 인덱스를 계산하여 반환한다.
-    static int ConvertToDenseSegmentIndex(int segmentGroupIndex, int n, int a, int b, bool top) {
+    static int ConvertToSegmentIndex(int segmentGroupIndex, int n, int a, int b, bool top) {
         var localSegmentIndex = ConvertToLocalSegmentIndex(n, a, b, top);
 
-        return ConvertToDenseSegmentIndex(n, segmentGroupIndex, localSegmentIndex);
+        return ConvertToSegmentIndex(n, segmentGroupIndex, localSegmentIndex);
     }
 
-    // static int ConvertToSegmentIndex(int segmentGroupIndex, int localSegmentIndex) {
-    //     return (segmentGroupIndex << LocalSegmentIndexBitCount) | localSegmentIndex;
-    // }
-
-    public static int ConvertToDenseSegmentIndex(int n, int segmentGroupIndex, int localSegmentIndex) {
+    public static int ConvertToSegmentIndex(int n, int segmentGroupIndex, int localSegmentIndex) {
         var segmentCountPerGroup = CalculateSegmentCountPerGroup(n);
         if (segmentGroupIndex is < 0 or >= GroupCount) {
             throw new ArgumentOutOfRangeException(nameof(segmentGroupIndex), segmentGroupIndex, null);
@@ -709,7 +695,7 @@ public static class Geocoding {
     // 이웃 세그먼트 인덱스를 모두 반환한다.
     // 여러 세그먼트 그룹에 걸쳐야하므로, 세그먼트 서브 인덱스로 조회할 수는 없다.
     public static int[] GetNeighborsOfSegmentIndex(int n, int segmentIndex) {
-        var (segGroupIndex, localSegmentIndex) = SplitDenseSegIndexToSegGroupAndLocalSegmentIndex(n, segmentIndex);
+        var (segGroupIndex, localSegmentIndex) = SplitSegIndexToSegGroupAndLocalSegmentIndex(n, segmentIndex);
 
         var baseAxisOrientation = FaceAxisOrientationList[segGroupIndex];
 
@@ -721,7 +707,7 @@ public static class Geocoding {
         foreach (var (neighbor, neighborAb, neighborT) in neighborsAsRelativeAbt) {
             switch (neighbor) {
                 case SegmentGroupNeighbor.Inside:
-                    var neighborSegIndex = ConvertToDenseSegmentIndex(n, segGroupIndex,
+                    var neighborSegIndex = ConvertToSegmentIndex(n, segGroupIndex,
                         ConvertToLocalSegmentIndex(n, neighborAb.x, neighborAb.y, neighborT));
 
                     neighborSegIndexList.Add(neighborSegIndex);
@@ -783,7 +769,7 @@ public static class Geocoding {
         var (convertedAb, convertedT) = ConvertCoordinate(baseAxisOrientation, edgeNeighbor, edgeNeighborOrigin, axisOrientation, n,
             neighborAb, neighborT);
         var convertedNeighborLocalSegIndex = ConvertToLocalSegmentIndex(n, convertedAb.x, convertedAb.y, convertedT);
-        var convertedNeighborSegIndex = ConvertToDenseSegmentIndex(n, neighborSegGroupIndex, convertedNeighborLocalSegIndex);
+        var convertedNeighborSegIndex = ConvertToSegmentIndex(n, neighborSegGroupIndex, convertedNeighborLocalSegIndex);
         return convertedNeighborSegIndex;
     }
 

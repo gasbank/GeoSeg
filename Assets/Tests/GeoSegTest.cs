@@ -498,55 +498,55 @@ public class GeoSegTest {
     }
 
     [Test]
-    public void TestSplitDenseSegIndexToSegGroupAndLocalSegmentIndex() {
+    public void TestSplitSegIndexToSegGroupAndLocalSegmentIndex() {
         const int subdivisionCountLimit = 14654;
         
-        Assert.Catch<ArgumentOutOfRangeException>(() => Geocoding.SplitDenseSegIndexToSegGroupAndLocalSegmentIndex(0, 0));
-        Assert.Catch<ArgumentOutOfRangeException>(() => Geocoding.SplitDenseSegIndexToSegGroupAndLocalSegmentIndex(-1, 0));
-        Assert.Catch<ArgumentOutOfRangeException>(() => Geocoding.SplitDenseSegIndexToSegGroupAndLocalSegmentIndex(subdivisionCountLimit + 1, 0));
+        Assert.Catch<ArgumentOutOfRangeException>(() => Geocoding.SplitSegIndexToSegGroupAndLocalSegmentIndex(0, 0));
+        Assert.Catch<ArgumentOutOfRangeException>(() => Geocoding.SplitSegIndexToSegGroupAndLocalSegmentIndex(-1, 0));
+        Assert.Catch<ArgumentOutOfRangeException>(() => Geocoding.SplitSegIndexToSegGroupAndLocalSegmentIndex(subdivisionCountLimit + 1, 0));
         
-        Assert.Catch<ArgumentOutOfRangeException>(() => Geocoding.SplitDenseSegIndexToSegGroupAndLocalSegmentIndex(1, -1));
-        Assert.Catch<ArgumentOutOfRangeException>(() => Geocoding.SplitDenseSegIndexToSegGroupAndLocalSegmentIndex(1, 20));
+        Assert.Catch<ArgumentOutOfRangeException>(() => Geocoding.SplitSegIndexToSegGroupAndLocalSegmentIndex(1, -1));
+        Assert.Catch<ArgumentOutOfRangeException>(() => Geocoding.SplitSegIndexToSegGroupAndLocalSegmentIndex(1, 20));
 
         for (var i = 0; i < Geocoding.GroupCount; i++) {
-            Assert.AreEqual((i, 0), Geocoding.SplitDenseSegIndexToSegGroupAndLocalSegmentIndex(1, i));
+            Assert.AreEqual((i, 0), Geocoding.SplitSegIndexToSegGroupAndLocalSegmentIndex(1, i));
         }
 
-        TestSplitDenseSeg(1);
-        TestSplitDenseSeg(2);
-        TestSplitDenseSeg(10);
+        TestSplitSeg(1);
+        TestSplitSeg(2);
+        TestSplitSeg(10);
         
-        TestSplitDenseSegReverse(1);
-        TestSplitDenseSegReverse(2);
-        TestSplitDenseSegReverse(10);
+        TestSplitSegReverse(1);
+        TestSplitSegReverse(2);
+        TestSplitSegReverse(10);
 
         // ReSharper disable once ConvertToConstant.Local
         var unsignedLastSegmentIndex = (long)subdivisionCountLimit * subdivisionCountLimit * Geocoding.GroupCount - 1;
         // ReSharper disable once IntVariableOverflowInUncheckedContext
-        Assert.AreEqual((Geocoding.GroupCount - 1, subdivisionCountLimit * subdivisionCountLimit - 1), Geocoding.SplitDenseSegIndexToSegGroupAndLocalSegmentIndex(subdivisionCountLimit, (int)unsignedLastSegmentIndex));
+        Assert.AreEqual((Geocoding.GroupCount - 1, subdivisionCountLimit * subdivisionCountLimit - 1), Geocoding.SplitSegIndexToSegGroupAndLocalSegmentIndex(subdivisionCountLimit, (int)unsignedLastSegmentIndex));
         // ReSharper disable once IntVariableOverflowInUncheckedContext
-        Assert.AreEqual((int)unsignedLastSegmentIndex, Geocoding.ConvertToDenseSegmentIndex(subdivisionCountLimit, Geocoding.GroupCount - 1, subdivisionCountLimit * subdivisionCountLimit - 1));
+        Assert.AreEqual((int)unsignedLastSegmentIndex, Geocoding.ConvertToSegmentIndex(subdivisionCountLimit, Geocoding.GroupCount - 1, subdivisionCountLimit * subdivisionCountLimit - 1));
     }
     
-    static void TestSplitDenseSeg(int subdivisionCount) {
+    static void TestSplitSeg(int subdivisionCount) {
         var segPerGroup = subdivisionCount * subdivisionCount;
         var segIndexCounter = 0;
         for (var i = 0; i < Geocoding.GroupCount; i++) {
             for (var j = 0; j < segPerGroup; j++) {
-                Assert.AreEqual((i, j), Geocoding.SplitDenseSegIndexToSegGroupAndLocalSegmentIndex(subdivisionCount, segIndexCounter));
-                Assert.AreEqual(segIndexCounter, Geocoding.ConvertToDenseSegmentIndex(subdivisionCount, i, j));
+                Assert.AreEqual((i, j), Geocoding.SplitSegIndexToSegGroupAndLocalSegmentIndex(subdivisionCount, segIndexCounter));
+                Assert.AreEqual(segIndexCounter, Geocoding.ConvertToSegmentIndex(subdivisionCount, i, j));
                 segIndexCounter++;
             }
         }
     }
     
-    static void TestSplitDenseSegReverse(int subdivisionCount) {
+    static void TestSplitSegReverse(int subdivisionCount) {
         var segPerGroup = subdivisionCount * subdivisionCount;
         var segIndexCounter = (int)((long)subdivisionCount * subdivisionCount * Geocoding.GroupCount - 1);
         for (var i = Geocoding.GroupCount - 1; i >= 0; i--) {
             for (var j = segPerGroup - 1; j >= 0; j--) {
-                Assert.AreEqual((i, j), Geocoding.SplitDenseSegIndexToSegGroupAndLocalSegmentIndex(subdivisionCount, segIndexCounter));
-                Assert.AreEqual(segIndexCounter, Geocoding.ConvertToDenseSegmentIndex(subdivisionCount, i, j));
+                Assert.AreEqual((i, j), Geocoding.SplitSegIndexToSegGroupAndLocalSegmentIndex(subdivisionCount, segIndexCounter));
+                Assert.AreEqual(segIndexCounter, Geocoding.ConvertToSegmentIndex(subdivisionCount, i, j));
                 segIndexCounter--;
             }
         }

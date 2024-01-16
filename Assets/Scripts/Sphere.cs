@@ -89,7 +89,7 @@ public class Sphere : MonoBehaviour {
         intersect2Pos.position = planeIntersectPos;
         intersect2Pos.LookAt(Vector3.zero);
 
-        var (segGroupIndex, localSegIndex) = Geocoding.SplitDenseSegIndexToSegGroupAndLocalSegmentIndex(subdivisionCount, segIndex);
+        var (segGroupIndex, localSegIndex) = Geocoding.SplitSegIndexToSegGroupAndLocalSegmentIndex(subdivisionCount, segIndex);
 
         
         var (centerLat, centerLng) = Geocoding.CalculateSegmentCenterLatLng(subdivisionCount, segIndex);
@@ -164,7 +164,7 @@ public class Sphere : MonoBehaviour {
             neighborPosList[i].gameObject.SetActive(false);
         }
 
-        var (segGroupIndex, _) = Geocoding.SplitDenseSegIndexToSegGroupAndLocalSegmentIndex(subdivisionCount, segIndex);
+        var (segGroupIndex, _) = Geocoding.SplitSegIndexToSegGroupAndLocalSegmentIndex(subdivisionCount, segIndex);
 
         for (var index = 0; index < Geocoding.SegmentGroupTriList.Length; index++) {
             var triList = Geocoding.SegmentGroupTriList[index];
