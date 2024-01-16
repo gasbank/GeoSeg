@@ -497,6 +497,55 @@ public class GeoSegTest {
             Geocoding.AxisOrientation.CW, 8, new(-8, 7), true));
     }
 
+    [Test]
+    public void TestSplitDenseSegIndexToSegGroupAndLocalSegmentIndex() {
+        Assert.Catch<ArgumentOutOfRangeException>(() => Geocoding.SplitDenseSegIndexToSegGroupAndLocalSegmentIndex(0, 0));
+        Assert.Catch<ArgumentOutOfRangeException>(() => Geocoding.SplitDenseSegIndexToSegGroupAndLocalSegmentIndex(-1, 0));
+        Assert.Catch<ArgumentOutOfRangeException>(() => Geocoding.SplitDenseSegIndexToSegGroupAndLocalSegmentIndex(14655, 0));
+        
+        Assert.Catch<ArgumentOutOfRangeException>(() => Geocoding.SplitDenseSegIndexToSegGroupAndLocalSegmentIndex(1, -1));
+        Assert.Catch<ArgumentOutOfRangeException>(() => Geocoding.SplitDenseSegIndexToSegGroupAndLocalSegmentIndex(1, 20));
+
+        for (var i = 0; i < 20; i++) {
+            Assert.AreEqual((i, 0), Geocoding.SplitDenseSegIndexToSegGroupAndLocalSegmentIndex(1, i));
+        }
+
+        TestSplitDenseSeg(1);
+        TestSplitDenseSeg(2);
+        TestSplitDenseSeg(10);
+        
+        TestSplitDenseSegReverse(1);
+        TestSplitDenseSegReverse(2);
+        TestSplitDenseSegReverse(10);
+
+        const int subdivisionCount = 14654;
+        // ReSharper disable once ConvertToConstant.Local
+        var unsignedLastSegmentIndex = (long)subdivisionCount * subdivisionCount * 20 - 1;
+        // ReSharper disable once IntVariableOverflowInUncheckedContext
+        Assert.AreEqual((Geocoding.GroupCount - 1, subdivisionCount * subdivisionCount - 1), Geocoding.SplitDenseSegIndexToSegGroupAndLocalSegmentIndex(subdivisionCount, (int)unsignedLastSegmentIndex));
+    }
+    static void TestSplitDenseSeg(int subdivisionCount) {
+        var segPerGroup = subdivisionCount * subdivisionCount;
+        var segIndexCounter = 0;
+        for (var i = 0; i < Geocoding.GroupCount; i++) {
+            for (var j = 0; j < segPerGroup; j++) {
+                Assert.AreEqual((i, j), Geocoding.SplitDenseSegIndexToSegGroupAndLocalSegmentIndex(subdivisionCount, segIndexCounter));
+                segIndexCounter++;
+            }
+        }
+    }
+    
+    static void TestSplitDenseSegReverse(int subdivisionCount) {
+        var segPerGroup = subdivisionCount * subdivisionCount;
+        var segIndexCounter = (int)((long)subdivisionCount * subdivisionCount * Geocoding.GroupCount - 1);
+        for (var i = Geocoding.GroupCount - 1; i >= 0; i--) {
+            for (var j = segPerGroup - 1; j >= 0; j--) {
+                Assert.AreEqual((i, j), Geocoding.SplitDenseSegIndexToSegGroupAndLocalSegmentIndex(subdivisionCount, segIndexCounter));
+                segIndexCounter--;
+            }
+        }
+    }
+
     // A UnityTest behaves like a coroutine in Play Mode. In Edit Mode you can use
     // `yield return null;` to skip a frame.
     [UnityTest]

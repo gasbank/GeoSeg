@@ -424,6 +424,39 @@ public static class Geocoding {
         var localSegIndex = segmentIndex & ((1 << LocalSegmentIndexBitCount) - 1);
         return (segmentGroupIndex, localSegIndex);
     }
+    
+    public const int GroupCount = 20;
+
+    public static (int, int) SplitDenseSegIndexToSegGroupAndLocalSegmentIndex(int n, int segmentIndex) {
+        if (n < 1) {
+            throw new ArgumentOutOfRangeException(nameof(n), n, null);
+        }
+
+        var segmentCountPerGroup = n * n;
+        
+        var unsignedMaxSegCount = (long)segmentCountPerGroup * GroupCount;
+        
+        if (unsignedMaxSegCount > (long)uint.MaxValue + 1) {
+            throw new ArgumentOutOfRangeException(nameof(n), n, null);
+        }
+
+        var unsignedSegmentIndex = (uint)segmentIndex;
+        if (unsignedSegmentIndex >= unsignedMaxSegCount) {
+            throw new ArgumentOutOfRangeException(nameof(segmentIndex), segmentIndex, null);
+        }
+
+        var quotient = Math.DivRem(unsignedSegmentIndex, segmentCountPerGroup, out var remainder);
+        if (quotient is < 0 or >= GroupCount) {
+            throw new("Logic Error; quotient out of range");
+        }
+
+        if (remainder < 0 || remainder >= segmentCountPerGroup) {
+            throw new("Logic Error; remainder out of range");
+        }
+
+        // (segmentGroupIndex, localSegIndex)
+        return ((int)quotient, (int)remainder);
+    }
 
     // Seg Index를 Seg Group & ABT로 변환해서 반환
     public static Tuple<int, Vector2Int, bool> SplitSegIndexToSegGroupAndAbt(int n, int segmentIndex) {
