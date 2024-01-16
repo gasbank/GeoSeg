@@ -18,6 +18,9 @@ public class Sphere : MonoBehaviour {
     public static string overlayText;
 
     [Range(1, 14654)] public int subdivisionCount = 8192;
+
+    [SerializeField] bool drawDebugPolygon;
+
     //const int RenderingSubdivisionCountLimit = 360;
     const int RenderingSubdivisionCountLimit = 8;
 
@@ -142,23 +145,25 @@ public class Sphere : MonoBehaviour {
         foreach (var neighborSegIndex in Geocoding.GetNeighborsOfSegmentIndex(subdivisionCount, segIndex)) {
             neighborPosList[neighborPosListIndex].position = Geocoding.CalculateSegmentCenter(subdivisionCount, neighborSegIndex);
             neighborPosList[neighborPosListIndex].gameObject.SetActive(true);
-            
-            // Gizmos.color = Color.blue;
-            //
-            // var vertsNormalized = Geocoding.CalculateSegmentCorners(subdivisionCount, neighborSegIndex, true);
-            // Gizmos.DrawLineStrip(vertsNormalized, true);
-            //
-            // Gizmos.color = Color.red;
-            // var vertsNotNormalized = Geocoding.CalculateSegmentCorners(subdivisionCount, neighborSegIndex, false);
-            // Gizmos.DrawLineStrip(vertsNotNormalized, true);
-            //
-            // Gizmos.DrawMesh(new() {
-            //     vertices = vertsNotNormalized,
-            //     normals = vertsNormalized,
-            //     triangles = new[] { 0, 1, 2, 0, 2, 1 },
-            // });
 
-            
+            if (drawDebugPolygon) {
+                Gizmos.color = Color.blue;
+
+                var vertsNormalized = Geocoding.CalculateSegmentCorners(subdivisionCount, neighborSegIndex, true);
+                Gizmos.DrawLineStrip(vertsNormalized, true);
+
+                Gizmos.color = Color.red;
+                var vertsNotNormalized = Geocoding.CalculateSegmentCorners(subdivisionCount, neighborSegIndex, false);
+                Gizmos.DrawLineStrip(vertsNotNormalized, true);
+
+                Gizmos.DrawMesh(new() {
+                    vertices = vertsNotNormalized,
+                    normals = vertsNormalized,
+                    triangles = new[] { 0, 1, 2, 0, 2, 1 },
+                });
+            }
+
+
             neighborPosListIndex++;
         }
 
