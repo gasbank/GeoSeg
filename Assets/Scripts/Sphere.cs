@@ -74,6 +74,8 @@ public class Sphere : MonoBehaviour {
             var (lat, lng) = Geocoding.CalculateSegmentCenterLatLng(testSubdivisionCount, i);
             Debug.Log($"Seg #{i} Center: {Geocoding.CalculateSegmentCenter(testSubdivisionCount, i)} / LL: {(lat, lng)} / LL (deg): {(lat * Mathf.Rad2Deg, lng * Mathf.Rad2Deg)}");
         }
+
+        Debug.Log($"Last segment index = {Geocoding.ConvertToSegmentIndex(14654, 19, 14654 * 14654 - 1)}");
     }
 
 #if UNITY_EDITOR
