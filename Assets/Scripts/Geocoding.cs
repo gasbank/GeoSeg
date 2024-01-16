@@ -321,7 +321,7 @@ public static class Geocoding {
 
         var (abCoords, top) = CalculateAbCoords(n, triList[0], triList[1], triList[2], intersect);
 
-        return ConvertToSegmentIndex(segGroupIndex, n, abCoords.x, abCoords.y, top);
+        return ConvertToDenseSegmentIndex(segGroupIndex, n, abCoords.x, abCoords.y, top);
     }
     public static Vector3 CalculateUnitSpherePosition(float lat, float lng) {
         var cLat = Mathf.Cos(lat);
@@ -417,14 +417,14 @@ public static class Geocoding {
 
     // 32비트 중 MSB 1비트는 부호 비트로 남겨두고, 세그먼트 그룹 인덱스는 총 0~19 범위이므로 5비트가 필요하다.
     // 즉 32비트에서 1비트+5비트를 제외한 비트를 local segment index 공간으로 쓸 수 있다.
-    const int LocalSegmentIndexBitCount = 32 - 1 - 5;
+    // const int LocalSegmentIndexBitCount = 32 - 1 - 5;
+    //
+    // public static (int, int) SplitSegIndexToSegGroupAndLocalSegmentIndex(int segmentIndex) {
+    //     var segmentGroupIndex = segmentIndex >> LocalSegmentIndexBitCount;
+    //     var localSegIndex = segmentIndex & ((1 << LocalSegmentIndexBitCount) - 1);
+    //     return (segmentGroupIndex, localSegIndex);
+    // }
 
-    public static (int, int) SplitSegIndexToSegGroupAndLocalSegmentIndex(int segmentIndex) {
-        var segmentGroupIndex = segmentIndex >> LocalSegmentIndexBitCount;
-        var localSegIndex = segmentIndex & ((1 << LocalSegmentIndexBitCount) - 1);
-        return (segmentGroupIndex, localSegIndex);
-    }
-    
     public const int GroupCount = 20;
 
     public static (int, int) SplitDenseSegIndexToSegGroupAndLocalSegmentIndex(int n, int segmentIndex) {
@@ -433,9 +433,9 @@ public static class Geocoding {
         }
 
         var segmentCountPerGroup = CalculateSegmentCountPerGroup(n);
-        
+
         var unsignedMaxSegCount = (long)segmentCountPerGroup * GroupCount;
-        
+
         if (unsignedMaxSegCount > (long)uint.MaxValue + 1) {
             throw new ArgumentOutOfRangeException(nameof(n), n, null);
         }
@@ -457,51 +457,53 @@ public static class Geocoding {
         // (segmentGroupIndex, localSegIndex)
         return ((int)quotient, (int)remainder);
     }
-    
+
     static int CalculateSegmentCountPerGroup(int n) {
         if (n < 1) {
             throw new ArgumentOutOfRangeException(nameof(n), n, null);
         }
-        
+
         return n * n;
     }
 
     // Seg Index를 Seg Group & ABT로 변환해서 반환
     public static Tuple<int, Vector2Int, bool> SplitSegIndexToSegGroupAndAbt(int n, int segmentIndex) {
-        var (segmentGroupIndex, localSegIndex) = SplitSegIndexToSegGroupAndLocalSegmentIndex(segmentIndex);
+        var (segmentGroupIndex, localSegIndex) = SplitDenseSegIndexToSegGroupAndLocalSegmentIndex(n, segmentIndex);
         var (abCoords, top) = SplitLocalSegmentIndexToAbt(n, localSegIndex);
         return Tuple.Create(segmentGroupIndex, abCoords, top);
     }
-    
+
     // Seg Index의 세 정점 위치를 계산해서 반환
     public static Vector3[] CalculateSegmentCorners(int n, int segmentIndex, bool normalize) {
         var (segGroupIndex, ab, t) = SplitSegIndexToSegGroupAndAbt(n, segmentIndex);
         var segGroupVerts = VertIndexPerFaces[segGroupIndex].Select(e => Vertices[e]).ToArray();
         var axisA = (segGroupVerts[1] - segGroupVerts[0]) / n;
         var axisB = (segGroupVerts[2] - segGroupVerts[0]) / n;
-        
+
         var parallelogramCorner = segGroupVerts[0] + ab.x * axisA + ab.y * axisB;
-        
-        var ret = t ? new[] {
-            parallelogramCorner + axisA + axisB,
-            parallelogramCorner + axisA,
-            parallelogramCorner + axisB,
-        } : new[] {
-            parallelogramCorner,
-            parallelogramCorner + axisA,
-            parallelogramCorner + axisB,
-        };
+
+        var ret = t
+            ? new[] {
+                parallelogramCorner + axisA + axisB,
+                parallelogramCorner + axisA,
+                parallelogramCorner + axisB,
+            }
+            : new[] {
+                parallelogramCorner,
+                parallelogramCorner + axisA,
+                parallelogramCorner + axisB,
+            };
 
         return normalize ? ret.Select(e => e.normalized).ToArray() : ret;
     }
-    
+
     // Seg Index의 중심 좌표를 계산해서 반환 (정규화되어 단위구 위의 점으로 변환되어 반환)
     public static Vector3 CalculateSegmentCenter(int n, int segmentIndex) {
         var (segGroupIndex, ab, t) = SplitSegIndexToSegGroupAndAbt(n, segmentIndex);
         var segGroupVerts = VertIndexPerFaces[segGroupIndex].Select(e => Vertices[e]).ToArray();
         var axisA = (segGroupVerts[1] - segGroupVerts[0]) / n;
         var axisB = (segGroupVerts[2] - segGroupVerts[0]) / n;
-        
+
         var parallelogramCorner = segGroupVerts[0] + ab.x * axisA + ab.y * axisB;
         var offset = axisA + axisB;
         return (parallelogramCorner + offset / 3 * (t ? 2 : 1)).normalized;
@@ -532,16 +534,16 @@ public static class Geocoding {
     }
 
     // 세그먼트 그룹 인덱스, n(분할 횟수), AB 좌표, top여부 네 개를 조합 해 전역 세그먼트 인덱스를 계산하여 반환한다.
-    static int ConvertToSegmentIndex(int segmentGroupIndex, int n, int a, int b, bool top) {
+    static int ConvertToDenseSegmentIndex(int segmentGroupIndex, int n, int a, int b, bool top) {
         var localSegmentIndex = ConvertToLocalSegmentIndex(n, a, b, top);
 
-        return ConvertToSegmentIndex(segmentGroupIndex, localSegmentIndex);
+        return ConvertToDenseSegmentIndex(n, segmentGroupIndex, localSegmentIndex);
     }
 
-    static int ConvertToSegmentIndex(int segmentGroupIndex, int localSegmentIndex) {
-        return (segmentGroupIndex << LocalSegmentIndexBitCount) | localSegmentIndex;
-    }
-    
+    // static int ConvertToSegmentIndex(int segmentGroupIndex, int localSegmentIndex) {
+    //     return (segmentGroupIndex << LocalSegmentIndexBitCount) | localSegmentIndex;
+    // }
+
     public static int ConvertToDenseSegmentIndex(int n, int segmentGroupIndex, int localSegmentIndex) {
         var segmentCountPerGroup = CalculateSegmentCountPerGroup(n);
         if (segmentGroupIndex is < 0 or >= GroupCount) {
@@ -552,7 +554,7 @@ public static class Geocoding {
             throw new ArgumentOutOfRangeException(nameof(localSegmentIndex), localSegmentIndex, null);
         }
 
-        return segmentCountPerGroup * segmentGroupIndex + localSegmentIndex;
+        return (int)((long)segmentCountPerGroup * segmentGroupIndex + localSegmentIndex);
     }
 
     // 세 꼭지점(ip0, ip1, ip2)으로 정의되는 삼각형 내의 특정 지점(intersect)를 AB 좌표, top여부로 변환하여 반환한다.
@@ -568,14 +570,14 @@ public static class Geocoding {
 
         var ap = a - (p - a * p01).magnitude / (tanDelta * p01.magnitude);
         var bp = b - (p - b * p02).magnitude / (tanDelta * p02.magnitude);
-        
+
         //Debug.Log($"Original: {intersect.x}, {intersect.y}, {intersect.z}");
-        var check = ip0 + ap * p01 + bp * p02;
+        //var check = ip0 + ap * p01 + bp * p02;
         //Debug.Log($"Check: {check.x}, {check.y}, {check.z}");
 
         var apf = math.modf(ap * n, out var api);
         var bpf = math.modf(bp * n, out var bpi);
-        
+
         //Debug.Log($"api: {apf}, bpi: {bpf}, sum: {apf + bpf}");
 
         //ap * SubdivisionCount
@@ -707,7 +709,7 @@ public static class Geocoding {
     // 이웃 세그먼트 인덱스를 모두 반환한다.
     // 여러 세그먼트 그룹에 걸쳐야하므로, 세그먼트 서브 인덱스로 조회할 수는 없다.
     public static int[] GetNeighborsOfSegmentIndex(int n, int segmentIndex) {
-        var (segGroupIndex, localSegmentIndex) = SplitSegIndexToSegGroupAndLocalSegmentIndex(segmentIndex);
+        var (segGroupIndex, localSegmentIndex) = SplitDenseSegIndexToSegGroupAndLocalSegmentIndex(n, segmentIndex);
 
         var baseAxisOrientation = FaceAxisOrientationList[segGroupIndex];
 
@@ -719,10 +721,10 @@ public static class Geocoding {
         foreach (var (neighbor, neighborAb, neighborT) in neighborsAsRelativeAbt) {
             switch (neighbor) {
                 case SegmentGroupNeighbor.Inside:
-                    var neighborLocalSegIndex = ConvertToSegmentIndex(segGroupIndex,
+                    var neighborSegIndex = ConvertToDenseSegmentIndex(n, segGroupIndex,
                         ConvertToLocalSegmentIndex(n, neighborAb.x, neighborAb.y, neighborT));
 
-                    neighborSegIndexList.Add(ConvertToSegmentIndex(segGroupIndex, neighborLocalSegIndex));
+                    neighborSegIndexList.Add(neighborSegIndex);
                     break;
                 case SegmentGroupNeighbor.O:
                     neighborSegIndexList.Add(ConvertCoordinateByNeighborInfo(baseAxisOrientation, neighborInfo[0], n, neighborAb,
@@ -781,7 +783,7 @@ public static class Geocoding {
         var (convertedAb, convertedT) = ConvertCoordinate(baseAxisOrientation, edgeNeighbor, edgeNeighborOrigin, axisOrientation, n,
             neighborAb, neighborT);
         var convertedNeighborLocalSegIndex = ConvertToLocalSegmentIndex(n, convertedAb.x, convertedAb.y, convertedT);
-        var convertedNeighborSegIndex = ConvertToSegmentIndex(neighborSegGroupIndex, convertedNeighborLocalSegIndex);
+        var convertedNeighborSegIndex = ConvertToDenseSegmentIndex(n, neighborSegGroupIndex, convertedNeighborLocalSegIndex);
         return convertedNeighborSegIndex;
     }
 
@@ -821,7 +823,7 @@ public static class Geocoding {
         // bottom인 경우에는 코너인지 아닌지에 따라서도 처리가 달라진다.
         return GetLocalSegmentIndexNeighborsAsAbtCase3Bottom(canonical, n, ab);
     }
-    
+
     static readonly (int, int, bool)[] NeighborOffsetSubdivisionOne = {
         // 하단 행
         (0, -1, false),
@@ -836,7 +838,7 @@ public static class Geocoding {
         (-1, 1, false),
         (0, 1, false),
     };
-    
+
     static readonly (int, int, bool)[] NeighborOffsetTop = {
         // 하단 행
         (0, -1, true),
@@ -1203,23 +1205,24 @@ public static class Geocoding {
     public static StringBuilder GenerateSourceCode() {
 
         StringBuilder sb = new();
-        
+
         sb.AppendLine($"const int VertIndexPerFaces[{GroupCount}][3] = {{");
         for (var i = 0; i < VertIndexPerFaces.Length; i++) {
             var e = VertIndexPerFaces[i];
             sb.AppendLine($"    {{{e[0]}, {e[1]}, {e[2]}}}, // Face {i}");
         }
+
         sb.AppendLine("};");
 
         sb.AppendLine();
-        
+
         sb.AppendLine("const Vector3 Vertices[] = {");
         foreach (var e in Vertices) {
             sb.AppendLine($"    {{{e.x}, {e.y}, {e.z}}},");
         }
 
         sb.AppendLine("};");
-        
+
         sb.AppendLine();
 
         sb.AppendLine($"const Vector3 SegmentGroupTriList[{GroupCount}][3] = {{");
@@ -1242,15 +1245,16 @@ public static class Geocoding {
         }
 
         sb.AppendLine("};");
-        
+
         sb.AppendLine();
-        
+
         sb.AppendLine($"const NeighborInfo NeighborFaceInfoList[{GroupCount}][3] = {{");
         foreach (var e in NeighborFaceInfoList) {
             sb.AppendLine("    {");
             foreach (var ee in e) {
                 var (neighborSegGroupIndex, edgeNeighbor, edgeNeighborOrigin, axisOrientation) = ee;
-                sb.AppendLine($"        {{{neighborSegGroupIndex}, EdgeNeighbor_{edgeNeighbor}, EdgeNeighborOrigin_{edgeNeighborOrigin}, AxisOrientation_{axisOrientation}}},");
+                sb.AppendLine(
+                    $"        {{{neighborSegGroupIndex}, EdgeNeighbor_{edgeNeighbor}, EdgeNeighborOrigin_{edgeNeighborOrigin}, AxisOrientation_{axisOrientation}}},");
             }
 
             sb.AppendLine("    },");

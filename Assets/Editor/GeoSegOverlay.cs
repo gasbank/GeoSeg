@@ -11,7 +11,7 @@ public class GeoSegOverlay : Overlay {
     Label label;
     public override VisualElement CreatePanelContent() {
         var root = new VisualElement { name = "GeoSeg" };
-        label = new() { text = Sphere.OverlayText };
+        label = new() { text = Sphere.overlayText };
         root.Add(label);
         return root;
     }
@@ -20,7 +20,7 @@ public class GeoSegOverlay : Overlay {
         base.OnCreated();
 
         SceneView.duringSceneGui += view => {
-            label.text = Sphere.OverlayText;
+            label.text = Sphere.overlayText;
             //Debug.Log("????");
         };
     }

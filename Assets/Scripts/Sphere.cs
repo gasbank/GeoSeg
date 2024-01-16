@@ -2,8 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using Unity.Mathematics;
 using UnityEditor;
 using UnityEngine;
 
@@ -17,9 +15,9 @@ public class Sphere : MonoBehaviour {
     public Transform centerPos;
     public Transform[] neighborPosList;
 
-    public static string OverlayText;
+    public static string overlayText;
 
-    [Range(1, 8192)] public int subdivisionCount = 8192;
+    [Range(1, 14654)] public int subdivisionCount = 8192;
     //const int RenderingSubdivisionCountLimit = 360;
     const int RenderingSubdivisionCountLimit = 8;
 
@@ -91,7 +89,7 @@ public class Sphere : MonoBehaviour {
         intersect2Pos.position = planeIntersectPos;
         intersect2Pos.LookAt(Vector3.zero);
 
-        var (segGroupIndex, localSegIndex) = Geocoding.SplitSegIndexToSegGroupAndLocalSegmentIndex(segIndex);
+        var (segGroupIndex, localSegIndex) = Geocoding.SplitDenseSegIndexToSegGroupAndLocalSegmentIndex(subdivisionCount, segIndex);
 
         
         var (centerLat, centerLng) = Geocoding.CalculateSegmentCenterLatLng(subdivisionCount, segIndex);
@@ -103,7 +101,7 @@ public class Sphere : MonoBehaviour {
 
         var (abCoords, top) = Geocoding.SplitLocalSegmentIndexToAbt(subdivisionCount, localSegIndex);
 
-        OverlayText = $"Intersection Lat: {userPosLat * Mathf.Rad2Deg}°, Lng: {userPosLng * Mathf.Rad2Deg}°\n"
+        overlayText = $"Intersection Lat: {userPosLat * Mathf.Rad2Deg}°, Lng: {userPosLng * Mathf.Rad2Deg}°\n"
                       + $"Segment Group: {segGroupIndex} ABT: {(abCoords, top)}\n"
                       + $" * Local segment index {localSegIndex}\n"
                       + $" * Segment index {segIndex}\n"
@@ -166,7 +164,7 @@ public class Sphere : MonoBehaviour {
             neighborPosList[i].gameObject.SetActive(false);
         }
 
-        var (segGroupIndex, _) = Geocoding.SplitSegIndexToSegGroupAndLocalSegmentIndex(segIndex);
+        var (segGroupIndex, _) = Geocoding.SplitDenseSegIndexToSegGroupAndLocalSegmentIndex(subdivisionCount, segIndex);
 
         for (var index = 0; index < Geocoding.SegmentGroupTriList.Length; index++) {
             var triList = Geocoding.SegmentGroupTriList[index];
